@@ -1,0 +1,28 @@
+{
+  "name": "cross-stitch-bench",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Throwaway performance benchmark for the cross stitch tool (see BENCHMARK.md)",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "fixtures": "node scripts/make-fixtures.ts",
+    "bench:render": "node src/bench/render/run.ts",
+    "bench:history": "vitest run --config vitest.bench.config.ts",
+    "bench:convert": "node src/bench/convert/run.ts",
+    "bench:pdf": "node src/bench/pdf/run.ts",
+    "bench:all": "node scripts/run-all.ts",
+    "report": "node scripts/make-report.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "playwright": "^1.64.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

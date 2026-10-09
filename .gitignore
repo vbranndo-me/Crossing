@@ -1,0 +1,4 @@
+node_modules/
+dist/
+fixtures/images/*.png
+results/tmp/

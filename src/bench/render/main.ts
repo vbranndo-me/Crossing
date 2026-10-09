@@ -120,8 +120,9 @@ const bench = {
   },
 
   /**
-   * Pencil strokes through dispatched pointer events (down, 3 moves, up). Latency is measured from
-   * dispatch to the frame after the one that repainted, i.e. when that repaint has been submitted.
+   * Pencil strokes through dispatched pointer events (down, 3 moves, up). Like real rAF-aligned
+   * input, each event is dispatched at the start of a frame and repainted in that same frame;
+   * latency runs from dispatch until the next frame starts, i.e. until the repaint was submitted.
    */
   async paint(scale: number, strokes: number, capMs: number) {
     center(scale);
@@ -130,24 +131,28 @@ const bench = {
     const rand = rng(11);
     const latency: number[] = [];
     const started = performance.now();
+    // Keep strokes inside the part of the grid that is on screen.
+    const pad = 4 * scale;
+    const x0 = Math.max(0, -cam.x * scale) + pad;
+    const y0 = Math.max(0, -cam.y * scale) + pad;
+    const w = Math.min(VIEW_W, (size - cam.x) * scale) - pad - x0;
+    const h = Math.min(VIEW_H, (size - cam.y) * scale) - pad - y0;
     let done = 0;
-    const send = async (type: string, id: number, x: number, y: number, measure: boolean) => {
+    const send = async (type: string, id: number, x: number, y: number) => {
       const t0 = performance.now();
       canvas.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true }));
-      if (!measure) return;
-      await raf();
       renderer.flush(cam);
       await raf();
       latency.push(performance.now() - t0);
     };
     for (; done < strokes && performance.now() - started < capMs; done++) {
-      let x = rand() * VIEW_W;
-      let y = rand() * VIEW_H;
+      let x = x0 + rand() * w;
+      let y = y0 + rand() * h;
       const dx = (rand() < 0.5 ? -1 : 1) * scale;
       const dy = (rand() < 0.5 ? -1 : 1) * scale * (rand() < 0.5 ? 0 : 1);
-      await send('pointerdown', done + 1, x, y, true);
-      for (let k = 0; k < 3; k++) await send('pointermove', done + 1, (x += dx), (y += dy), true);
-      await send('pointerup', done + 1, x, y, false);
+      await send('pointerdown', done + 1, x, y);
+      for (let k = 0; k < 3; k++) await send('pointermove', done + 1, (x += dx), (y += dy));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: done + 1, clientX: x, clientY: y, bubbles: true }));
     }
     return {
       strokes: done,
@@ -176,8 +181,7 @@ const bench = {
       }
       renderer.gridChanged();
       renderer.render(cam);
-      await raf();
-      await raf();
+      await raf(); // next frame starts: the repaint was submitted
       times.push(performance.now() - t0);
     }
     return { median: percentile(times, 0.5), max: Math.max(...times) };

@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'vite';
+
+const pages = ['render', 'convert', 'pdf'].map((b) => [b, `src/bench/${b}/index.html`]).filter(([, f]) => existsSync(f));
 
 // One minimal HTML harness per browser benchmark. Fixture images are served from /images/.
 export default defineConfig({
@@ -7,11 +10,7 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     rollupOptions: {
-      input: {
-        render: 'src/bench/render/index.html',
-        convert: 'src/bench/convert/index.html',
-        pdf: 'src/bench/pdf/index.html',
-      },
+      input: Object.fromEntries(pages),
     },
   },
   worker: { format: 'es' },

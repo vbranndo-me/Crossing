@@ -8,6 +8,8 @@ declare const bench: RenderBench;
 
 const STRATEGIES = (process.env.BENCH_STRATEGIES ?? 's1,s2,s3').split(',');
 const ZOOMS = [2, 8, 16, 32];
+// 12 px is an extra pan point: the smallest cell size at which symbols are drawn (most symbols on screen).
+const PAN_ZOOMS = [2, 8, 12, 16, 32];
 const DURATION = QUICK ? 1000 : 5000;
 const WARMUP = QUICK ? 200 : 500;
 const STROKES = QUICK ? 50 : 500;
@@ -27,7 +29,7 @@ async function runOnce(strategy: string, size: number): Promise<Metrics> {
   m.firstFrameMs = open.firstFrameMs;
   m.layerMB = open.layerMB;
   m.heapAfterOpenMB = open.heapMB;
-  for (const z of ZOOMS) {
+  for (const z of PAN_ZOOMS) {
     const pan = await page.evaluate(([z, d, w]) => bench.pan(z, d, w), [z, DURATION, WARMUP]);
     m[`pan${z}.p50`] = pan.p50;
     m[`pan${z}.p95`] = pan.p95;
@@ -78,7 +80,7 @@ for (const strategy of STRATEGIES) {
       const m = all[k];
       log(
         `${strategy} ${size} run ${k + 1}/${runs}: open ${m.firstFrameMs.toFixed(0)} ms, pan p95 ` +
-          `${ZOOMS.map((z) => m[`pan${z}.p95`].toFixed(1)).join('/')} ms, zoom p95 ${m['zoom.p95'].toFixed(1)} ms, paint p95 ` +
+          `${PAN_ZOOMS.map((z) => m[`pan${z}.p95`].toFixed(1)).join('/')} ms, zoom p95 ${m['zoom.p95'].toFixed(1)} ms, paint p95 ` +
           `${ZOOMS.map((z) => m[`paint${z}.p95`].toFixed(1)).join('/')} ms, replace ${m.replaceMs.toFixed(0)} ms`,
       );
     }
@@ -87,12 +89,12 @@ for (const strategy of STRATEGIES) {
   }
 }
 
-writeRaw('render', {
+writeRaw(process.env.BENCH_ANGLE ? `render-${process.env.BENCH_ANGLE}` : 'render', {
   bench: 'B1 render',
   date: new Date().toISOString(),
   quick: QUICK,
   machine: machineInfo(await site.info()),
-  config: { zooms: ZOOMS, durationMs: DURATION, warmupMs: WARMUP, strokes: STROKES, paintCapMs: PAINT_CAP, palette: PALETTE, runs: RUNS },
+  config: { zooms: ZOOMS, panZooms: PAN_ZOOMS, durationMs: DURATION, warmupMs: WARMUP, strokes: STROKES, paintCapMs: PAINT_CAP, palette: PALETTE, runs: RUNS },
   results,
 });
 await site.close();

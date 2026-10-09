@@ -22,6 +22,10 @@ const ARGS = [
   '--js-flags=--expose-gc',
 ];
 
+/** BENCH_ANGLE=swiftshader renders WebGL on the CPU: a stand-in for a machine with no usable GPU. */
+const ANGLE = process.env.BENCH_ANGLE;
+if (ANGLE) ARGS.push(`--use-angle=${ANGLE}`, '--enable-unsafe-swiftshader');
+
 export interface Site {
   browser: Browser;
   /** Open a harness page, e.g. open('render', { strategy: 's2' }). */

@@ -13,6 +13,8 @@ export interface Job {
 
 export interface JobResult {
   totalMs: number;
+  /** Time spent after the conversion on the quality check, to be subtracted from wall time. */
+  checkMs: number;
   stages: StageTimes & { resize: number };
   rowStride: number;
   meanDeltaE: number;
@@ -40,12 +42,15 @@ export async function runJob(job: Job): Promise<JobResult> {
   const r = convert(rgba, size, size, pal, job.options);
   const totalMs = performance.now() - t0;
   // Quality check and colour count are not part of the timing.
+  const quality = meanDeltaE(rgba, size, size, r.cells, pal, r.rowStride);
+  const usedColors = new Set(r.cells).size - (r.rowStride > 1 ? 1 : 0);
   return {
     totalMs,
+    checkMs: performance.now() - t0 - totalMs,
     stages: { resize, ...r.stages },
     rowStride: r.rowStride,
-    meanDeltaE: meanDeltaE(rgba, size, size, r.cells, pal, r.rowStride),
-    usedColors: new Set(r.cells).size - (r.rowStride > 1 ? 1 : 0),
+    meanDeltaE: quality,
+    usedColors,
     cells: r.cells,
   };
 }

@@ -1,5 +1,5 @@
 // B1: rendering and interaction. Run with `npm run bench:render`.
-import { startSite } from '../../../scripts/browser.ts';
+import { GPU_MODE, startSite } from '../../../scripts/browser.ts';
 import { QUICK, RUNS, SIZES, log, machineInfo, writeRaw } from '../../../scripts/lib.ts';
 import { spread } from '../stats.ts';
 import type { RenderBench } from './main.ts';
@@ -89,7 +89,7 @@ for (const strategy of STRATEGIES) {
   }
 }
 
-writeRaw(process.env.BENCH_ANGLE ? `render-${process.env.BENCH_ANGLE}` : 'render', {
+writeRaw(GPU_MODE ? `render-gpu-${GPU_MODE}` : 'render', {
   bench: 'B1 render',
   date: new Date().toISOString(),
   quick: QUICK,

@@ -8,8 +8,9 @@ const node = (args: string[], env: Record<string, string> = {}) =>
 const steps: [string, () => void][] = [
   ['B2 history', () => node(['node_modules/vitest/vitest.mjs', 'run', '--config', 'vitest.bench.config.ts'])],
   ['B1 render', () => node(['src/bench/render/run.ts'])],
-  // Extra data point: the 1000x1000 grid with WebGL and canvas rasterized on the CPU (no usable GPU).
-  ['B1 render, software GPU', () => node(['src/bench/render/run.ts'], { BENCH_ANGLE: 'swiftshader', BENCH_STRATEGIES: 's2,s3', BENCH_SIZES: '1000' })],
+  // Extra data points for a machine with no usable GPU, 1000x1000 only: WebGL on the CPU, canvas 2D on the CPU.
+  ['B1 render, WebGL on CPU', () => node(['src/bench/render/run.ts'], { BENCH_GPU: 'swiftshader', BENCH_STRATEGIES: 's3', BENCH_SIZES: '1000' })],
+  ['B1 render, canvas on CPU', () => node(['src/bench/render/run.ts'], { BENCH_GPU: 'off', BENCH_STRATEGIES: 's2', BENCH_SIZES: '1000' })],
   ['B3 convert', () => node(['src/bench/convert/run.ts'])],
   ['B4 pdf', () => node(['src/bench/pdf/run.ts'])],
   ['report', () => node(['scripts/make-report.ts'])],

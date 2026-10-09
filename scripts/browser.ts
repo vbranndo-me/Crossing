@@ -22,9 +22,14 @@ const ARGS = [
   '--js-flags=--expose-gc',
 ];
 
-/** BENCH_ANGLE=swiftshader renders WebGL on the CPU: a stand-in for a machine with no usable GPU. */
-const ANGLE = process.env.BENCH_ANGLE;
-if (ANGLE) ARGS.push(`--use-angle=${ANGLE}`, '--enable-unsafe-swiftshader');
+/**
+ * BENCH_GPU selects a stand-in for a machine with no usable GPU:
+ * "swiftshader" runs WebGL on the CPU (what Chromium falls back to), "off" disables GPU
+ * rasterization so canvas 2D is drawn by the CPU.
+ */
+export const GPU_MODE = process.env.BENCH_GPU ?? '';
+if (GPU_MODE === 'swiftshader') ARGS.push('--use-angle=swiftshader', '--enable-unsafe-swiftshader');
+if (GPU_MODE === 'off') ARGS.splice(ARGS.indexOf('--enable-gpu'), 1, '--disable-gpu');
 
 export interface Site {
   browser: Browser;

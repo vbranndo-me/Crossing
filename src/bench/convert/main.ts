@@ -48,7 +48,13 @@ const bench = {
   async run(c: Case) {
     const job: Job = { image: await load(c.image), size: c.size, paletteSize: c.paletteSize, options: c.options };
     const exec = c.worker ? runInWorker : runJob;
-    for (let k = 0; k < c.warmup; k++) await exec(job);
+    // The first call is the cold one: image not decoded yet, code not optimized.
+    let coldMs = NaN;
+    for (let k = 0; k < c.warmup; k++) {
+      const t0 = performance.now();
+      const r = await exec(job);
+      if (k === 0) coldMs = performance.now() - t0 - r.checkMs;
+    }
     // Let pending long-task entries from the warm-up be delivered before measuring.
     await new Promise((r) => setTimeout(r, 60));
     longTasks = [];
@@ -58,9 +64,10 @@ const bench = {
     const results: JobResult[] = [];
     for (let k = 0; k < c.runs; k++) {
       const t0 = performance.now();
-      results.push(await exec(job));
-      // For the worker this includes posting the job and receiving the result.
-      wall.push(performance.now() - t0);
+      const r = await exec(job);
+      results.push(r);
+      // Wall time minus the quality check; for the worker it includes posting the job and receiving the result.
+      wall.push(performance.now() - t0 - r.checkMs);
     }
     await new Promise((r) => setTimeout(r, 60));
     const stage = (k: keyof JobResult['stages']) => median(results.map((r) => r.stages[k]));
@@ -68,6 +75,7 @@ const bench = {
     const totals = results.map((r, k) => (scale > 1 ? r.totalMs + r.stages.map * (scale - 1) : wall[k]));
     return {
       totalMs: spread(totals),
+      coldMs,
       stages: { resize: stage('resize'), lab: stage('lab'), quantize: stage('quantize'), map: stage('map') * scale, dither: stage('dither') },
       extrapolated: scale > 1,
       rowStride: scale,

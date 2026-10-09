@@ -1,7 +1,7 @@
 {
  "bench": "B4 pdf",
- "date": "2026-10-09T00:49:29.113Z",
- "quick": true,
+ "date": "2026-10-09T02:04:29.149Z",
+ "quick": false,
  "machine": {
   "cpu": "Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz",
   "cores": 12,
@@ -29,7 +29,7 @@
  "config": {
   "palette": 500,
   "cellsPerPage": 50,
-  "runs": 2,
+  "runs": 5,
   "heapLimitMB": 4096,
   "timeoutMs": 240000
  },
@@ -37,67 +37,172 @@
   {
    "size": 200,
    "strategy": "naive",
-   "runs": 2,
+   "runs": 5,
    "pageCount": 28,
    "chartPages": 16,
    "progressEvents": 28,
    "fileBytes": 1089210,
    "totalMs": {
-    "median": 2713.42125,
-    "min": 2441.9312999999997,
-    "max": 2984.9112,
-    "runs": 2
+    "median": 2439.9764,
+    "min": 2398.9418,
+    "max": 2531.5303,
+    "runs": 5
    },
    "firstPageMs": {
-    "median": 296.5404000000001,
-    "min": 215.5423,
-    "max": 377.5385000000001,
-    "runs": 2
+    "median": 198.63099999999997,
+    "min": 194.5575,
+    "max": 219.91249999999997,
+    "runs": 5
    },
    "peakHeapBytes": {
-    "median": 305708227,
-    "min": 305543227,
-    "max": 305873227,
-    "runs": 2
+    "median": 306497907,
+    "min": 301444747,
+    "max": 317834547,
+    "runs": 5
    },
    "peakRssBytes": {
-    "median": 500310016,
-    "min": 499789824,
-    "max": 500830208,
-    "runs": 2
+    "median": 498364416,
+    "min": 494039040,
+    "max": 500277248,
+    "runs": 5
    }
   },
   {
    "size": 200,
    "strategy": "stream",
-   "runs": 2,
+   "runs": 5,
    "pageCount": 28,
    "chartPages": 16,
    "progressEvents": 28,
-   "fileBytes": 378549,
+   "fileBytes": 378547,
    "totalMs": {
-    "median": 349.02125,
-    "min": 327.4429999999999,
-    "max": 370.59950000000003,
-    "runs": 2
+    "median": 343.68789999999996,
+    "min": 332.40250000000003,
+    "max": 404.01779999999997,
+    "runs": 5
    },
    "firstPageMs": {
-    "median": 66.86565000000002,
-    "min": 64.02260000000001,
-    "max": 69.70870000000002,
-    "runs": 2
+    "median": 68.54669999999999,
+    "min": 64.78969999999998,
+    "max": 86.97109999999998,
+    "runs": 5
    },
    "peakHeapBytes": {
-    "median": 22701770,
-    "min": 22495577,
-    "max": 22907963,
-    "runs": 2
+    "median": 22518839,
+    "min": 22267807,
+    "max": 25125703,
+    "runs": 5
    },
    "peakRssBytes": {
-    "median": 136304640,
-    "min": 135827456,
-    "max": 136781824,
-    "runs": 2
+    "median": 136908800,
+    "min": 135270400,
+    "max": 137859072,
+    "runs": 5
+   }
+  },
+  {
+   "size": 500,
+   "strategy": "naive",
+   "runs": 5,
+   "pageCount": 112,
+   "chartPages": 100,
+   "progressEvents": 112,
+   "fileBytes": 6458736,
+   "totalMs": {
+    "median": 14995.399000000001,
+    "min": 14754.189999999999,
+    "max": 15129.341,
+    "runs": 5
+   },
+   "firstPageMs": {
+    "median": 278.835,
+    "min": 260.71610000000004,
+    "max": 298.34630000000004,
+    "runs": 5
+   },
+   "peakHeapBytes": {
+    "median": 1511306278,
+    "min": 1491514406,
+    "max": 1517866318,
+    "runs": 5
+   },
+   "peakRssBytes": {
+    "median": 1805271040,
+    "min": 1788788736,
+    "max": 1815687168,
+    "runs": 5
+   }
+  },
+  {
+   "size": 500,
+   "strategy": "stream",
+   "runs": 5,
+   "pageCount": 112,
+   "chartPages": 100,
+   "progressEvents": 112,
+   "fileBytes": 2011763,
+   "totalMs": {
+    "median": 1180.7151,
+    "min": 1168.8866,
+    "max": 1206.2847,
+    "runs": 5
+   },
+   "firstPageMs": {
+    "median": 132.45490000000007,
+    "min": 122.09230000000002,
+    "max": 133.87639999999993,
+    "runs": 5
+   },
+   "peakHeapBytes": {
+    "median": 32363706,
+    "min": 30797626,
+    "max": 34263437,
+    "runs": 5
+   },
+   "peakRssBytes": {
+    "median": 153952256,
+    "min": 150818816,
+    "max": 154615808,
+    "runs": 5
+   }
+  },
+  {
+   "size": 1000,
+   "strategy": "naive",
+   "runs": 0,
+   "failed": "Worker terminated due to reaching memory limit: JS heap out of memory"
+  },
+  {
+   "size": 1000,
+   "strategy": "stream",
+   "runs": 5,
+   "pageCount": 412,
+   "chartPages": 400,
+   "progressEvents": 412,
+   "fileBytes": 7884847,
+   "totalMs": {
+    "median": 4258.6785,
+    "min": 4208.0941,
+    "max": 4441.771,
+    "runs": 5
+   },
+   "firstPageMs": {
+    "median": 312.95500000000004,
+    "min": 304.961,
+    "max": 331.30150000000003,
+    "runs": 5
+   },
+   "peakHeapBytes": {
+    "median": 70826395,
+    "min": 70426888,
+    "max": 71729794,
+    "runs": 5
+   },
+   "peakRssBytes": {
+    "median": 205127680,
+    "min": 204144640,
+    "max": 207679488,
+    "runs": 5
    }
   }
  ],
@@ -105,28 +210,80 @@
   {
    "size": 200,
    "strategy": "stream",
-   "runs": 2,
+   "runs": 5,
    "wallMs": {
-    "median": 332.7000000476837,
-    "min": 306.10000014305115,
-    "max": 359.2999999523163,
-    "runs": 2
+    "median": 358.2000000476837,
+    "min": 308.60000014305115,
+    "max": 375.2000000476837,
+    "runs": 5
    },
    "firstPageMs": {
-    "median": 58.199999928474426,
-    "min": 58,
-    "max": 58.39999985694885,
-    "runs": 2
+    "median": 59.69999980926514,
+    "min": 55,
+    "max": 78.59999990463257,
+    "runs": 5
    },
    "longestTaskMs": {
     "median": 0,
     "min": 0,
     "max": 0,
-    "runs": 2
+    "runs": 5
    },
    "pageCount": 28,
    "fileBytes": 378548,
    "progressEvents": 28
+  },
+  {
+   "size": 500,
+   "strategy": "stream",
+   "runs": 5,
+   "wallMs": {
+    "median": 1069.7000000476837,
+    "min": 1050.5999999046326,
+    "max": 1083.5999999046326,
+    "runs": 5
+   },
+   "firstPageMs": {
+    "median": 109.70000004768372,
+    "min": 104.29999995231628,
+    "max": 114,
+    "runs": 5
+   },
+   "longestTaskMs": {
+    "median": 0,
+    "min": 0,
+    "max": 0,
+    "runs": 5
+   },
+   "pageCount": 112,
+   "fileBytes": 2011763,
+   "progressEvents": 112
+  },
+  {
+   "size": 1000,
+   "strategy": "stream",
+   "runs": 5,
+   "wallMs": {
+    "median": 3823.100000143051,
+    "min": 3797.9000000953674,
+    "max": 3920.7000000476837,
+    "runs": 5
+   },
+   "firstPageMs": {
+    "median": 299.09999990463257,
+    "min": 288.2999999523163,
+    "max": 332.89999985694885,
+    "runs": 5
+   },
+   "longestTaskMs": {
+    "median": 0,
+    "min": 0,
+    "max": 0,
+    "runs": 5
+   },
+   "pageCount": 412,
+   "fileBytes": 7884847,
+   "progressEvents": 412
   }
  ]
 }

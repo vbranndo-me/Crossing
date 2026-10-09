@@ -89,7 +89,7 @@ it('B2 history benchmark', async () => {
   for (const size of SIZES) {
     for (const kind of Object.keys(KINDS)) {
       await runOnce(size, kind); // warm-up
-      const runs = [];
+      const runs: Awaited<ReturnType<typeof runOnce>>[] = [];
       for (let k = 0; k < RUNS; k++) runs.push(await runOnce(size, kind));
       const pick = (k: keyof (typeof runs)[0]) => spread(runs.map((r) => r[k]));
       const r = {

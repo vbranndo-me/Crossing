@@ -8,7 +8,7 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /** BENCH_QUICK=1 runs a tiny version of each benchmark, to smoke-test the harness. */
 export const QUICK = !!process.env.BENCH_QUICK;
 export const RUNS = QUICK ? 2 : 5;
-export const SIZES = [200, 500, 1000];
+export const SIZES = (process.env.BENCH_SIZES ?? '200,500,1000').split(',').map(Number);
 
 export function machineInfo(extra: Record<string, unknown> = {}): Record<string, unknown> {
   const cpus = os.cpus();

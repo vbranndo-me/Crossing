@@ -1,0 +1,132 @@
+{
+ "bench": "B4 pdf",
+ "date": "2026-10-09T00:49:29.113Z",
+ "quick": true,
+ "machine": {
+  "cpu": "Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz",
+  "cores": 12,
+  "ramGB": 31.9,
+  "os": "Windows_NT 10.0.26200 x64",
+  "node": "v24.17.0",
+  "browser": "Chromium 156.0.8078.4 (headless)",
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "viewport": {
+   "width": 1280,
+   "height": 720
+  },
+  "flags": [
+   "--disable-gpu-vsync",
+   "--disable-frame-rate-limit",
+   "--enable-precise-memory-info",
+   "--ignore-gpu-blocklist",
+   "--enable-gpu",
+   "--disable-background-timer-throttling",
+   "--disable-renderer-backgrounding",
+   "--disable-backgrounding-occluded-windows",
+   "--js-flags=--expose-gc"
+  ]
+ },
+ "config": {
+  "palette": 500,
+  "cellsPerPage": 50,
+  "runs": 2,
+  "heapLimitMB": 4096,
+  "timeoutMs": 240000
+ },
+ "results": [
+  {
+   "size": 200,
+   "strategy": "naive",
+   "runs": 2,
+   "pageCount": 28,
+   "chartPages": 16,
+   "progressEvents": 28,
+   "fileBytes": 1089210,
+   "totalMs": {
+    "median": 2713.42125,
+    "min": 2441.9312999999997,
+    "max": 2984.9112,
+    "runs": 2
+   },
+   "firstPageMs": {
+    "median": 296.5404000000001,
+    "min": 215.5423,
+    "max": 377.5385000000001,
+    "runs": 2
+   },
+   "peakHeapBytes": {
+    "median": 305708227,
+    "min": 305543227,
+    "max": 305873227,
+    "runs": 2
+   },
+   "peakRssBytes": {
+    "median": 500310016,
+    "min": 499789824,
+    "max": 500830208,
+    "runs": 2
+   }
+  },
+  {
+   "size": 200,
+   "strategy": "stream",
+   "runs": 2,
+   "pageCount": 28,
+   "chartPages": 16,
+   "progressEvents": 28,
+   "fileBytes": 378549,
+   "totalMs": {
+    "median": 349.02125,
+    "min": 327.4429999999999,
+    "max": 370.59950000000003,
+    "runs": 2
+   },
+   "firstPageMs": {
+    "median": 66.86565000000002,
+    "min": 64.02260000000001,
+    "max": 69.70870000000002,
+    "runs": 2
+   },
+   "peakHeapBytes": {
+    "median": 22701770,
+    "min": 22495577,
+    "max": 22907963,
+    "runs": 2
+   },
+   "peakRssBytes": {
+    "median": 136304640,
+    "min": 135827456,
+    "max": 136781824,
+    "runs": 2
+   }
+  }
+ ],
+ "browser": [
+  {
+   "size": 200,
+   "strategy": "stream",
+   "runs": 2,
+   "wallMs": {
+    "median": 332.7000000476837,
+    "min": 306.10000014305115,
+    "max": 359.2999999523163,
+    "runs": 2
+   },
+   "firstPageMs": {
+    "median": 58.199999928474426,
+    "min": 58,
+    "max": 58.39999985694885,
+    "runs": 2
+   },
+   "longestTaskMs": {
+    "median": 0,
+    "min": 0,
+    "max": 0,
+    "runs": 2
+   },
+   "pageCount": 28,
+   "fileBytes": 378548,
+   "progressEvents": 28
+  }
+ ]
+}

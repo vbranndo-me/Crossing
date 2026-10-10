@@ -1,0 +1,47 @@
+/*
+ * Visual identity tokens. Everything the interface draws reads these variables, so the look
+ * (fonts, colours, edges) changes here and nowhere else.
+ *
+ * To use a pixel font later: add an @font-face for it and set --font-ui (and --font-size to a
+ * size the font was drawn for, e.g. 8px or 16px). --font-smoothing: none keeps its edges hard.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Type */
+  --font-ui: system-ui, "Segoe UI", sans-serif;
+  --font-size: 13px;
+  --font-size-small: 12px;
+  --line-height: 1.35;
+  --font-smoothing: auto; /* auto | none */
+
+  /* Colours */
+  --c-workspace: #25222b; /* behind the chart */
+  --c-surface: #3a3642; /* panels, menus, bars */
+  --c-surface-raised: #4b4656; /* title bars, buttons */
+  --c-surface-sunken: #2c2933; /* lists, wells */
+  --c-outline: #131117; /* hard outer edge */
+  --c-edge-light: #615b6f; /* bevel highlight */
+  --c-edge-dark: #26232c; /* bevel shadow */
+  --c-text: #ece8f2;
+  --c-text-muted: #a8a1b6;
+  --c-accent: #7fc4e8; /* selection, focus, active */
+  --c-accent-text: #101820;
+  --c-hover: #565064;
+  --c-danger: #ff8f8f; /* errors */
+
+  /* Shape */
+  --outline: 2px; /* thickness of the hard edge around windows and menus */
+  --radius: 0px;
+  --shadow: 4px 4px 0 rgb(0 0 0 / 0.4);
+  --bevel: inset 1px 1px 0 var(--c-edge-light), inset -1px -1px 0 var(--c-edge-dark);
+
+  /* Spacing and sizes */
+  --space: 4px;
+  --control-height: 24px;
+  --bar-height: 28px;
+  --swatch: 14px;
+  --swatch-pick: 22px; /* swatches in the colour picker */
+  --tool-size: 30px; /* toolbar buttons */
+  --icon-size: 16px; /* icons are 16x16 pixel art: use multiples of 16 to keep them crisp */
+}

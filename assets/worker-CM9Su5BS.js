@@ -1,0 +1,938 @@
+(function(){let e=/* @__PURE__ */ new Float64Array(256);for(let t=0;t<256;t++){let n=t/255;e[t]=n<=.04045?n/12.92:((n+.055)/1.055)**2.4}let t=e=>e>.008856451679035631?Math.cbrt(e):7.787037037037037*e+16/116;function n(n,r,i,a,o=0){let s=e[n],c=e[r],l=e[i],u=t((.4124564*s+.3575761*c+.1804375*l)/.95047),d=t(.2126729*s+.7151522*c+.072175*l),f=t((.0193339*s+.119192*c+.9503041*l)/1.08883);a[o]=116*d-16,a[o+1]=500*(u-d),a[o+2]=200*(d-f)}let r=e=>e>.20689655172413793?e*e*e:(e-16/116)/7.787037037037037,i=e=>Math.round(255*(e<=.0031308?12.92*e:1.055*e**(1/2.4)-.055));function a(e,t,n,a,o=0){let s=(e+16)/116,c=.95047*r(s+t/500),l=r(s),u=1.08883*r(s-n/200);a[o]=i(Math.max(0,3.2404542*c-1.5371385*l-.4985314*u)),a[o+1]=i(Math.max(0,-.969266*c+1.8760108*l+.041556*u)),a[o+2]=i(Math.max(0,.0556434*c-.2040259*l+1.0572252*u))}let o=Math.PI,s=2*o,c=6103515625;function l(e,t,n,r,i,a){let l=(Math.sqrt(t*t+n*n)+Math.sqrt(i*i+a*a))/2,u=l*l*l*l*l*l*l,d=.5*(1-Math.sqrt(u/(u+c))),f=(1+d)*t,p=(1+d)*i,m=Math.sqrt(f*f+n*n),h=Math.sqrt(p*p+a*a),g=m===0?0:Math.atan2(n,f);g<0&&(g+=s);let _=h===0?0:Math.atan2(a,p);_<0&&(_+=s);let v=r-e,y=h-m,b=m*h!==0,x=0;b&&(x=_-g,x>o?x-=s:x<-o&&(x+=s));let S=2*Math.sqrt(m*h)*Math.sin(x/2),C=(e+r)/2,w=(m+h)/2,T=g+_;b&&(Math.abs(g-_)>o&&(T+=T<s?s:-s),T/=2);let E=1-.17*Math.cos(T-o/6)+.24*Math.cos(2*T)+.32*Math.cos(3*T+o/30)-.2*Math.cos(4*T-63*o/180),D=(T*180/o-275)/25,O=o/6*Math.exp(-D*D),k=w*w*w*w*w*w*w,A=2*Math.sqrt(k/(k+c)),j=(C-50)*(C-50),M=1+.015*j/Math.sqrt(20+j),N=1+.045*w,P=1+.015*w*E,F=-Math.sin(2*O)*A,I=v/M,L=y/N,R=S/P;return Math.sqrt(I*I+L*L+R*R+F*L*R)}let u=[[33,126],[161,172],[174,255],[913,929],[931,937],[945,969],[9985,10174],[8592,8703],[8704,8959],[9632,9727],[9472,9599]].flatMap(([e,t])=>Array.from({length:t-e+1},(t,n)=>String.fromCharCode(e+n)));var d=`Anchor Code,Color Name,HEX,R,G,B,C,M,Y,K
+1,White Bright,#FFFFFF,255,255,255,0,0,0,0
+2,White,#FAFAFA,250,250,250,0,0,0,2
+6,Peach Very Light,#F7D1C4,247,209,196,0,15.4,20.6,3.1
+8,Peach Light,#F8AEA7,248,174,167,0,29.8,32.7,2.7
+9,Coral Very Light,#F4948E,244,148,142,0,39.3,41.8,4.3
+10,Coral Light,#E66764,230,103,100,0,55.2,56.5,9.8
+11,Coral Medium,#E8545A,232,84,90,0,63.8,61.2,9
+13,Coral Dark,#C42D32,196,45,50,0,77,74.5,23.1
+19,Pink Bright Ultra Very,#B2242C,178,36,44,0,79.8,75.3,30.2
+20,Garnet Light,#86191D,134,25,29,0,81.3,78.4,47.5
+22,Garnet,#5C1317,92,19,23,0,79.3,75,63.9
+23,Baby Pink Very Light,#F8C5C2,248,197,194,0,20.6,21.8,2.7
+24,Baby Pink Light,#F5B6BC,245,182,188,0,25.7,23.3,3.9
+25,Baby Pink,#F7A7B5,247,167,181,0,32.4,26.7,3.1
+26,Baby Pink Medium,#F790A0,247,144,160,0,41.7,35.2,3.1
+27,Baby Pink Dark,#F5788F,245,120,143,0,51,41.6,3.9
+28,Baby Pink Very Dark,#EC4858,236,72,88,0,69.5,62.7,7.5
+29,Baby Pink Ultra Very Dark,#D92E41,217,46,65,0,78.8,70,14.9
+31,Pink Bright Light,#F58491,245,132,145,0,46.1,40.8,3.9
+33,Pink Bright,#F46F71,244,111,113,0,54.5,53.7,4.3
+35,Pink Bright Dark,#EA474C,234,71,76,0,69.7,67.5,8.2
+36,Pink Bright Very Light,#F3A1A8,243,161,168,0,33.7,30.9,4.7
+38,Dusty Pink,#E74B5E,231,75,94,0,67.5,59.3,9.4
+39,Dusty Pink Dark,#BB3542,187,53,66,0,71.7,64.7,26.7
+40,Rose,#F26681,242,102,129,0,57.9,46.7,5.1
+41,Rose Dark,#E54065,229,64,101,0,72.1,55.9,10.2
+42,Rose Very Dark,#BE283B,190,40,59,0,78.9,68.9,25.5
+43,Garnet Medium,#8D1D2B,141,29,43,0,79.4,69.5,44.7
+44,Garnet Dark,#6D1318,109,19,24,0,82.6,78,57.3
+45,Garnet Very Dark,#5C1419,92,20,25,0,78.3,72.8,63.9
+46,Christmas Red Light,#D1252B,209,37,43,0,82.3,79.4,18
+47,Christmas Red,#BD2228,189,34,40,0,82,78.8,25.9
+48,Pink Very Light,#F6D2D3,246,210,211,0,14.6,14.2,3.5
+49,Pink Light,#EEB4BD,238,180,189,0,24.4,20.6,6.7
+50,Pink,#F6A5B3,246,165,179,0,32.9,27.2,3.5
+52,Pink Dark,#F6889F,246,136,159,0,44.7,35.4,3.5
+54,Pink Very Dark,#EC4966,236,73,102,0,69.1,56.8,7.5
+55,Pink Mauve Light,#F593AD,245,147,173,0,40,29.4,3.9
+57,Pink Mauve Medium Dark,#DC4867,220,72,103,0,67.3,53.2,13.7
+59,Pink Mauve Ultra Very Dark,#B0283A,176,40,58,0,77.3,67,31
+60,Cerise Ultra Very Light,#E99EB3,233,158,179,0,32.2,23.2,8.6
+62,Cerise Light,#E46286,228,98,134,0,57,41.2,10.6
+63,Cerise,#D94275,217,66,117,0,69.6,46.1,14.9
+65,Cerise Ultra Very Dark,#A11F34,161,31,52,0,80.7,67.7,36.9
+66,Dusty Plum Light,#E594AC,229,148,172,0,35.4,24.9,10.2
+68,Dusty Plum Medium,#C44461,196,68,97,0,65.3,50.5,23.1
+69,Dusty Plum Medium Dark,#A3283B,163,40,59,0,75.5,63.8,36.1
+70,Dusty Plum Very Dark,#5C1322,92,19,34,0,79.3,63,63.9
+72,Dusty Plum Ultra Very Dark,#4A141E,74,20,30,0,73,59.5,71
+73,Plum Ultra Very Light,#F2BFC3,242,191,195,0,21.1,19.4,5.1
+74,Plum Very Light,#E795A5,231,149,165,0,35.5,28.6,9.4
+75,Plum Light,#F39AAC,243,154,172,0,36.6,29.2,4.7
+76,Plum Medium Light,#DD6882,221,104,130,0,52.9,41.2,13.3
+77,Plum Medium,#C3405E,195,64,94,0,67.2,51.8,23.5
+78,Plum Medium Dark,#B92E4C,185,46,76,0,75.1,58.9,27.5
+85,Mauve Very Light,#EDB1D0,237,177,208,0,25.3,12.2,7.1
+86,Mauve Medium Light,#DA87B6,218,135,182,0,38.1,16.5,14.5
+87,Mauve,#C3558F,195,85,143,0,56.4,26.7,23.5
+88,Mauve Medium,#B93F7A,185,63,122,0,65.9,34.1,27.5
+89,Mauve Dark,#AA295D,170,41,93,0,75.9,45.3,33.3
+90,Purple Light,#D9A2BE,217,162,190,0,25.3,12.4,14.9
+92,Purple Medium,#A54F8D,165,79,141,0,52.1,14.5,35.3
+94,Purple Dark,#7C2C6A,124,44,106,0,64.5,14.5,51.4
+95,Violet Ultra Very Light,#E3B7D1,227,183,209,0,19.4,7.9,11
+96,Violet Very Light,#D796BE,215,150,190,0,30.2,11.6,15.7
+97,Violet Light,#C47FB2,196,127,178,0,35.2,9.2,23.1
+98,Violet Medium Light,#AC69A3,172,105,163,0,39,5.2,32.5
+99,Violet Medium Dark,#7E3C7E,126,60,126,0,52.4,0,50.6
+100,Violet Dark,#813B79,129,59,121,0,54.3,6.2,49.4
+101,Violet Very Dark,#5F2760,95,39,96,1,59.4,0,62.4
+102,Lavender Ultra Very Dark,#37184A,55,24,74,25.7,67.6,0,71
+103,Purple Very Light,#ECCDDC,236,205,220,0,13.1,6.8,7.5
+108,Lavender Very Light,#C7AED3,199,174,211,5.7,17.5,0,17.3
+109,Lavender Light,#A185B5,161,133,181,11,26.5,0,29
+110,Lavender Medium,#8C70AD,140,112,173,19.1,35.3,0,32.2
+111,Lavender Dark,#614388,97,67,136,28.7,50.7,0,46.7
+112,Lavender Very Dark,#4A3077,74,48,119,37.8,59.7,0,53.3
+117,Blue Violet Very Light,#AAB2D6,170,178,214,20.6,16.8,0,16.1
+118,Blue Violet Light,#8D8EC4,141,142,196,28.1,27.6,0,23.1
+119,Blue Violet Dark,#403B80,64,59,128,50,53.9,0,49.8
+120,Blue Purple Very Light,#BDCEE4,189,206,228,17.1,9.6,0,10.6
+121,Blue Purple Light,#8EA0C9,142,160,201,29.4,20.4,0,21.2
+122,Blue Purple Medium,#5B608F,91,96,143,36.4,32.9,0,43.9
+123,Blue Purple Dark,#363A6B,54,58,107,49.5,45.8,0,58
+127,Navy Blue Very Dark,#19162A,25,22,42,40.5,47.6,0,83.5
+128,Sky Blue Very Light,#C5D6E3,197,214,227,13.2,5.7,0,11
+129,Sky Blue Light,#A5BFDF,165,191,223,26,14.3,0,12.5
+130,Sky Blue,#98B4D9,152,180,217,30,17.1,0,14.9
+131,Sky Blue Medium,#6582BC,101,130,188,46.3,30.9,0,26.3
+132,Sky Blue Dark,#324F94,50,79,148,66.2,46.6,0,42
+133,Sky Blue Very Dark,#2F4084,47,64,132,64.4,51.5,0,48.2
+134,Sky Blue Ultra Dark,#2A2F6C,42,47,108,61.1,56.5,0,57.6
+136,Delft Medium,#6684B2,102,132,178,42.7,25.8,0,30.2
+137,Delft Medium Dark,#46649C,70,100,156,55.1,35.9,0,38.8
+139,Delft Very Dark,#2C3A78,44,58,120,63.3,51.7,0,52.9
+140,Royal Blue Light,#8FAED8,143,174,216,33.8,19.4,0,15.3
+142,Royal Blue Medium,#4772B0,71,114,176,59.7,35.2,0,31
+143,Royal Blue Dark,#304C8B,48,76,139,65.5,45.3,0,45.5
+144,Navy Blue Ultra Very Light,#A6BFDA,166,191,218,23.9,12.4,0,14.5
+145,Navy Blue Very Light,#85A4CC,133,164,204,34.8,19.6,0,20
+146,Navy Blue Light,#6180BA,97,128,186,47.8,31.2,0,27.1
+147,Navy Blue Medium Light,#354D8F,53,77,143,62.9,46.2,0,43.9
+148,Navy Blue Medium,#294273,41,66,115,64.3,42.6,0,54.9
+149,Navy Blue Medium Dark,#1E2A56,30,42,86,65.1,51.2,0,66.3
+150,Navy Blue Dark,#15203F,21,32,63,66.7,49.2,0,75.3
+152,Navy Blue Ultra Very Dark,#171521,23,21,33,30.3,36.4,0,87.1
+158,Baby Blue Ultra Very Light,#CDE0E0,205,224,224,8.5,0,0,12.2
+159,Baby Blue Light,#B5CFE4,181,207,228,20.6,9.2,0,10.6
+160,Baby Blue,#A9CAE0,169,202,224,24.6,9.8,0,12.2
+161,Baby Blue Dark,#77A6C7,119,166,199,40.2,16.6,0,22
+162,Baby Blue Very Dark,#376C9D,55,108,157,65,31.2,0,38.4
+164,Baby Blue Ultra Very Dark,#244376,36,67,118,69.5,43.2,0,53.7
+167,Blue Green Light,#A0CBD4,160,203,212,24.5,4.2,0,16.9
+168,Blue Green Medium,#72A9BB,114,169,187,39,9.6,0,26.7
+169,Blue Green Dark,#3B749D,59,116,157,62.4,26.1,0,38.4
+170,Blue Green Very Dark,#1F4C77,31,76,119,73.9,36.1,0,53.3
+175,Cornflower Blue Light,#8FA8D0,143,168,208,31.3,19.2,0,18.4
+176,Cornflower Blue Medium,#7484B3,116,132,179,35.2,26.3,0,29.8
+177,Cornflower Blue Dark,#485091,72,80,145,50.3,44.8,0,43.1
+178,Cornflower Blue Very D,#34346C,52,52,108,51.9,51.9,0,57.6
+185,Turquoise Very Light,#94D4D0,148,212,208,30.2,0,1.9,16.9
+186,Turquoise Light,#7CC9C3,124,201,195,38.3,0,3,21.2
+187,Turquoise Medium,#58BBB8,88,187,184,52.9,0,1.6,26.7
+188,Turquoise Dark,#31968F,49,150,143,67.3,0,4.7,41.2
+189,Turquoise Very Dark,#238683,35,134,131,73.9,0,2.2,47.5
+203,Emerald Green Ultra Very Light,#9ECAA8,158,202,168,21.8,0,16.8,20.8
+204,Emerald Green Very Light,#85BA9A,133,186,154,28.5,0,17.2,27.1
+205,Emerald Green Light,#5EA481,94,164,129,42.7,0,21.3,35.7
+206,Jade Very Light,#B5D4BD,181,212,189,14.6,0,10.8,16.9
+208,Jade Light,#83B298,131,178,152,26.4,0,14.6,30.2
+209,Jade Medium,#6DAD8A,109,173,138,37,0,20.2,32.2
+210,Jade Medium Dark,#507F5F,80,127,95,37,0,25.2,50.2
+211,Jade Dark,#386B4F,56,107,79,47.7,0,26.2,58
+212,Jade Very Dark,#2B5542,43,85,66,49.4,0,22.4,66.7
+213,Misty Green Ultra Very Light,#C8CAB4,200,202,180,1,0,10.9,20.8
+214,Misty Green Very Light,#ADBBA1,173,187,161,7.5,0,13.9,26.7
+215,Misty Green Light,#79937D,121,147,125,17.7,0,15,42.4
+216,Misty Green Medium,#66826D,102,130,109,21.5,0,16.2,49
+217,Misty Green Dark,#3B614B,59,97,75,39.2,0,22.7,62
+218,Misty Green Very Dark,#284536,40,69,54,42,0,21.7,72.9
+225,Christmas Green Very Light,#83BF80,131,191,128,31.4,0,33,25.1
+226,Christmas Green Light,#6AA766,106,167,102,36.5,0,38.9,34.5
+227,Christmas Green,#429156,66,145,86,54.5,0,40.7,43.1
+228,Christmas Green Medium,#2C8352,44,131,82,66.4,0,37.4,48.6
+229,Christmas Green Dark,#237545,35,117,69,70.1,0,41,54.1
+230,Emerald Green,#207755,32,119,85,73.1,0,28.6,53.3
+231,Shell Grey Light,#C9B5B1,201,181,177,0,10,11.9,21.2
+232,Shell Grey Medium,#B8A3A2,184,163,162,0,11.4,12,27.8
+233,Shell Grey Dark,#917A7B,145,122,123,0,15.9,15.2,43.1
+234,Pearl Grey Very Light,#CEC7C5,206,199,197,0,3.4,4.4,19.2
+235,Pewter Grey,#8E8A8C,142,138,140,0,2.8,1.4,44.3
+236,Pewter Grey Very Dark,#3F383E,63,56,62,0,11.1,1.6,75.3
+238,Chartreuse,#64A757,100,167,87,40.1,0,47.9,34.5
+239,Chartreuse Very Dark,#5B9E4C,91,158,76,42.4,0,51.9,38
+240,Pistachio Green Light,#B5CC98,181,204,152,11.3,0,25.5,20
+241,Pistachio Green,#9DC48D,157,196,141,19.9,0,28.1,23.1
+242,Pistachio Green Medium,#85B27E,133,178,126,25.3,0,29.2,30.2
+243,Pistachio Green Medium Dark,#69A16E,105,161,110,34.8,0,31.7,36.9
+244,Pistachio Green Medium,#538855,83,136,85,39,0,37.5,46.7
+245,Pistachio Green Dark,#346E3B,52,110,59,52.7,0,46.4,56.9
+246,Pistachio Green Very Dark,#28512D,40,81,45,50.6,0,44.4,68.2
+253,Forest Green Ultra Very Light,#D3DA8A,211,218,138,3.2,0,36.7,14.5
+254,Forest Green Very Light,#C7D27B,199,210,123,5.2,0,41.4,17.6
+255,Forest Green Light,#99AE42,153,174,66,12.1,0,62.1,31.8
+256,Forest Green Medium,#799D40,121,157,64,22.9,0,59.2,38.4
+257,Forest Green Dark,#688D4A,104,141,74,26.2,0,47.5,44.7
+258,Forest Green Very Dark,#537F43,83,127,67,34.6,0,47.2,50.2
+259,Laurel Green Very Light,#E0DEB0,224,222,176,0,0.9,21.4,12.2
+260,Laurel Green Light,#C9C99D,201,201,157,0,0,21.9,21.2
+261,Laurel Green Medium,#A5B087,165,176,135,6.2,0,23.3,31
+262,Laurel Green Dark,#5D6747,93,103,71,9.7,0,31.1,59.6
+263,Loden Green Dark,#374026,55,64,38,14.1,0,40.6,74.9
+264,Avocado Green Ultra Very Light,#C3CB9B,195,203,155,3.9,0,23.6,20.4
+265,Avocado Green Very Light,#A9B87C,169,184,124,8.2,0,32.6,27.8
+266,Avocado Green Light,#93A062,147,160,98,8.1,0,38.8,37.3
+267,Avocado Green Medium,#717E45,113,126,69,10.3,0,45.2,50.6
+268,Avocado Green Dark,#4F5A30,79,90,48,12.2,0,46.7,64.7
+269,Avocado Green Very Dark,#42462A,66,70,42,5.7,0,40,72.5
+271,Baby Pink Ultra Very L,#F4DBD4,244,219,212,0,10.2,13.1,4.3
+273,Beaver Grey Very Dark,#52473F,82,71,63,0,13.4,23.2,67.8
+274,Grey Blue Very Light,#C9CECA,201,206,202,2.4,0,1.9,19.2
+275,Off White,#EEE1C8,238,225,200,0,5.5,16,6.7
+276,Coffee Ultra Very Light,#EDD6C0,237,214,192,0,9.7,19,7.1
+277,Gold Dark,#834A1E,131,74,30,0,43.5,77.1,48.6
+278,Lime Green Light,#DDD270,221,210,112,0,5,49.3,13.3
+279,Lime Green,#D2B84C,210,184,76,0,12.4,63.8,17.6
+280,Yellow Green,#B4A44B,180,164,75,0,8.9,58.3,29.4
+281,Yellow Green Dark,#77662C,119,102,44,0,14.3,63,53.3
+288,Lemon Light,#F4E076,244,224,118,0,8.2,51.6,4.3
+289,Lemon Medium,#F2DE6C,242,222,108,0,8.3,55.4,5.1
+290,Lemon Dark,#F3D33C,243,211,60,0,13.2,75.3,4.7
+291,Canary Yellow Bright,#F9C525,249,197,37,0,20.9,85.1,2.4
+292,Golden Brown Very Light,#EFE0B2,239,224,178,0,6.3,25.5,6.3
+293,Golden Yellow Light,#F0D077,240,208,119,0,13.3,50.4,5.9
+295,Golden Yellow Medium Light,#F4D675,244,214,117,0,12.3,52,4.3
+297,Golden Yellow Medium,#F6BB39,246,187,57,0,24,76.8,3.5
+298,Golden Yellow Dark,#F6C12D,246,193,45,0,21.5,81.7,3.5
+300,Yellow Very Light,#F3DFB3,243,223,179,0,8.2,26.3,4.7
+301,Burnt Orange Very Light,#F5D68F,245,214,143,0,12.7,41.6,3.9
+302,Burnt Orange Light,#F9BC4F,249,188,79,0,24.5,68.3,2.4
+303,Burnt Orange Medium,#F9A327,249,163,39,0,34.5,84.3,2.4
+304,Burnt Orange,#F18118,241,129,24,0,46.5,90,5.5
+305,Topaz Very Light,#F6CF72,246,207,114,0,15.9,53.7,3.5
+306,Gold,#EEA83B,238,168,59,0,29.4,75.2,6.7
+307,Topaz Light,#DE8822,222,136,34,0,38.7,84.7,12.9
+308,Topaz Medium,#C36419,195,100,25,0,48.7,87.2,23.5
+309,Topaz Medium Dark,#A94F1B,169,79,27,0,53.3,84,33.7
+310,Topaz Very Dark,#94411C,148,65,28,0,56.1,81.1,42
+311,Tangerine Very Light,#F4C179,244,193,121,0,20.9,50.4,4.3
+313,Tangerine Light,#F7AD57,247,173,87,0,30,64.8,3.1
+314,Tangerine Medium,#F98C20,249,140,32,0,43.8,87.1,2.4
+316,Tangerine Dark,#EF6915,239,105,21,0,56.1,91.2,6.3
+323,Orange Spice Light,#FC945C,252,148,92,0,41.3,63.5,1.2
+324,Orange Spice Medium,#F47330,244,115,48,0,52.9,80.3,4.3
+326,Orange Spice Dark,#D03B1A,208,59,26,0,71.6,87.5,18.4
+328,Peach Medium,#F9815D,249,129,93,0,48.2,62.7,2.4
+329,Peach Dark,#FB6E3A,251,110,58,0,56.2,76.9,1.6
+330,Orange,#F95D28,249,93,40,0,62.7,83.9,2.4
+332,Orange Dark,#F45423,244,84,35,0,65.6,85.7,4.3
+333,Orange Very Dark,#E83B2B,232,59,43,0,74.6,81.5,9
+334,Orange Red Very Dark,#E22D23,226,45,35,0,80.1,84.5,11.4
+335,Orange Red,#E02D2B,224,45,43,0,79.9,80.8,12.2
+336,Mahogany Ultra Very Light,#F1AD8D,241,173,141,0,28.2,41.5,5.5
+337,Mahogany Very Light,#E18060,225,128,96,0,43.1,57.3,11.8
+338,Mahogany Light,#DB644C,219,100,76,0,54.3,65.3,14.1
+339,Mahogany,#C24433,194,68,51,0,64.9,73.7,23.9
+340,Mahogany Medium Dark,#AF2E29,175,46,41,0,73.7,76.6,31.4
+341,Mahogany Dark,#AA2C26,170,44,38,0,74.1,77.6,33.3
+342,Lavender Ultra Very Light,#DBC7DA,219,199,218,0,9.1,0.5,14.1
+343,Antique Blue Light,#A4B3BF,164,179,191,14.1,6.3,0,25.1
+347,Chocolate Light,#DD9F74,221,159,116,0,28.1,47.5,13.3
+349,Chocolate Medium,#AE502D,174,80,45,0,54,74.1,31.8
+351,Copper Dark,#842C1D,132,44,29,0,66.7,78,48.2
+352,Copper Very Dark,#652017,101,32,23,0,68.3,77.2,60.4
+355,Chocolate Medium Dark,#964228,150,66,40,0,56,73.3,41.2
+357,Chocolate Dark,#772E1B,119,46,27,0,61.3,77.3,53.3
+358,Coffee Dark,#733524,115,53,36,0,53.9,68.7,54.9
+359,Coffee Very Dark,#5E2C1D,94,44,29,0,53.2,69.1,63.1
+360,Black Brown Medium,#4B241B,75,36,27,0,52,64,70.6
+361,Tan Very Light,#ECC69D,236,198,157,0,16.1,33.5,7.5
+362,Tan Medium Light,#DEA673,222,166,115,0,25.2,48.2,12.9
+363,Golden Brown Light,#E49F5D,228,159,93,0,30.3,59.2,10.6
+365,Golden Brown Medium,#B76531,183,101,49,0,44.8,73.2,28.2
+366,Coffee Very Light,#E6CAA9,230,202,169,0,12.2,26.5,9.8
+367,Coffee Light,#E2B694,226,182,148,0,19.5,34.5,11.4
+368,Coffee,#CF9B71,207,155,113,0,25.1,45.4,18.8
+369,Coffee Medium Light,#C77F59,199,127,89,0,36.2,55.3,22
+370,Coffee Medium,#913E24,145,62,36,0,57.2,75.2,43.1
+371,Coffee Medium Dark,#863A23,134,58,35,0,56.7,73.9,47.5
+372,Tan,#D0AA83,208,170,131,0,18.3,37,18.4
+373,Tan Medium Dark,#B4855C,180,133,92,0,26.1,48.9,29.4
+374,Tan Dark,#AA7148,170,113,72,0,33.5,57.6,33.3
+375,Hazelnut Brown Medium,#905731,144,87,49,0,39.6,66,43.5
+376,Dusty Flesh Light,#D4AE9C,212,174,156,0,17.9,26.4,16.9
+378,Dusty Flesh Medium,#B18470,177,132,112,0,25.4,36.7,30.6
+379,Dusty Flesh Dark,#9E6B57,158,107,87,0,32.3,44.9,38
+380,Black Brown Medium Dark,#381A16,56,26,22,0,53.6,60.7,78
+381,Black Brown Dark,#2E1613,46,22,19,0,52.2,58.7,82
+382,Black Brown Very Dark,#301D1A,48,29,26,0,39.6,45.8,81.2
+386,Yellow Ultra Very Light,#E0D0B1,224,208,177,0,7.1,21,12.2
+387,Beige Brown Very Light,#E7D7C0,231,215,192,0,6.9,16.9,9.4
+388,Beige Brown Light,#D2B8A3,210,184,163,0,12.4,22.4,17.6
+390,Beige Grey Light,#E0CFB8,224,207,184,0,7.6,17.9,12.2
+391,Beige Grey Medium,#D4C1A9,212,193,169,0,9,20.3,16.9
+392,Beige Grey Dark,#AA9680,170,150,128,0,11.8,24.7,33.3
+393,Beige Grey Ultra Very Dark,#867062,134,112,98,0,16.4,26.9,47.5
+397,Pearl Grey Ultra Very Light,#D4CEC7,212,206,199,0,2.8,6.1,16.9
+398,Pearl Grey,#BCBAB8,188,186,184,0,1.1,2.1,26.3
+399,Steel Grey Light,#A9A0A1,169,160,161,0,5.3,4.7,33.7
+400,Pewter Grey Dark,#655B64,101,91,100,0,9.9,1,60.4
+401,Shell Grey Very Dark,#3B333C,59,51,60,1.7,15,0,76.5
+403,Black,#151415,21,20,21,0,4.8,0,91.8
+410,Electric Blue Dark,#388ACA,56,138,202,72.3,31.7,0,20.8
+433,Electric Blue Medium,#59B4E0,89,180,224,60.3,19.6,0,12.2
+681,Green Grey,#595439,89,84,57,0,5.6,36,65.1
+683,Misty Green Ultra Very Dark,#283832,40,56,50,28.6,0,10.7,78
+778,Flesh Very Light,#EECDB5,238,205,181,0,13.9,23.9,6.7
+779,Grey Blue Very Dark,#6A8B96,106,139,150,29.3,7.3,0,41.2
+830,Drab Brown Very Light,#D4C7AD,212,199,173,0,6.1,18.4,16.9
+831,Drab Brown Light,#CFBFA2,207,191,162,0,7.7,21.7,18.8
+832,Drab Brown Medium,#9B7E63,155,126,99,0,18.7,36.1,39.2
+842,Khaki Green Light,#C8C398,200,195,152,0,2.5,24,21.6
+843,Khaki Green Medium Light,#9B935C,155,147,92,0,5.2,40.6,39.2
+844,Khaki Green Medium,#837946,131,121,70,0,7.6,46.6,48.6
+845,Khaki Green Medium Dark,#665C33,102,92,51,0,9.8,50,60
+846,Khaki Green Dark,#3D3B22,61,59,34,0,3.3,44.3,76.1
+847,Grey Blue Ultra Very Light,#D2D6D0,210,214,208,1.9,0,2.8,16.1
+848,Grey Blue Light,#BDBFBD,189,191,189,1,0,1,25.1
+849,Grey Blue Medium,#A2AAAC,162,170,172,5.8,1.2,0,32.5
+850,Grey Blue Dark,#859D9E,133,157,158,15.8,0.6,0,38
+851,Grey Blue Ultra Very Dark,#3A596A,58,89,106,45.3,16,0,58.4
+852,Avocado Ultra Very Light,#DDCEAC,221,206,172,0,6.8,22.2,13.3
+853,Avocado Very Light,#BEAE89,190,174,137,0,8.4,27.9,25.5
+854,Avocado Light,#B19F75,177,159,117,0,10.2,33.9,30.6
+855,Avocado Medium,#998052,153,128,82,0,16.3,46.4,40
+856,Yellow Green Medium,#806E47,128,110,71,0,14.1,44.5,49.8
+858,Fern Green Very Light,#AFB499,175,180,153,2.8,0,15,29.4
+859,Fern Green Light,#919375,145,147,117,1.4,0,20.4,42.4
+860,Fern Green Medium,#7B7E63,123,126,99,2.4,0,21.4,50.6
+861,Fern Green Dark,#52563E,82,86,62,4.7,0,27.9,66.3
+862,Fern Green Very Dark,#2D3224,45,50,36,10,0,28,80.4
+868,Peach Flesh,#EAAC97,234,172,151,0,26.5,35.5,8.2
+869,Antique Violet Very Light,#CFB3BD,207,179,189,0,13.5,8.7,18.8
+870,Antique Violet Light,#BA9FB0,186,159,176,0,14.5,5.4,27.1
+871,Antique Violet Medium,#946E84,148,110,132,0,25.7,10.8,42
+872,Antique Violet Medium Dark,#80566F,128,86,111,0,32.8,13.3,49.8
+873,Antique Violet Dark,#512C3C,81,44,60,0,45.7,25.9,68.2
+874,Gold Very Light,#DCB771,220,183,113,0,16.8,48.6,13.7
+875,Sea Foam Green Light,#ACBCAC,172,188,172,8.5,0,8.5,26.3
+876,Sea Foam Green Medium,#769585,118,149,133,20.8,0,10.7,41.6
+877,Sea Foam Green Dark,#517465,81,116,101,30.2,0,12.9,54.5
+878,Sea Foam Green Very Dark,#3C584A,60,88,74,31.8,0,15.9,65.5
+879,Sea Foam Green Ultra Very Dark,#224036,34,64,54,46.9,0,15.6,74.9
+880,Cream Medium,#E5C6AC,229,198,172,0,13.5,24.9,10.2
+881,Cream Dark,#E6C7AD,230,199,173,0,13.5,24.8,9.8
+882,Antique Mahogany Light,#E09F85,224,159,133,0,29,40.6,12.2
+883,Antique Mahogany,#C9795E,201,121,94,0,39.8,53.2,21.2
+884,Antique Mahogany Dark,#B64C37,182,76,55,0,58.2,69.8,28.6
+885,Yellow Beige Very Light,#D0BFA3,208,191,163,0,8.2,21.6,18.4
+886,Yellow Beige Light,#DDC296,221,194,150,0,12.2,32.1,13.3
+887,Yellow Beige Medium,#D4B585,212,181,133,0,14.6,37.3,16.9
+888,Hazelnut Brown Light,#B08550,176,133,80,0,24.4,54.5,31
+889,Drab Brown Very Dark,#6E4529,110,69,41,0,37.3,62.7,56.9
+890,Old Gold Medium,#D59A54,213,154,84,0,27.7,60.6,16.5
+891,Old Gold Light,#E8B679,232,182,121,0,21.6,47.8,9
+892,Shell Pink Very Light,#EBD1C1,235,209,193,0,11.1,17.9,7.8
+893,Shell Pink Light,#E9BAB4,233,186,180,0,20.2,22.7,8.6
+894,Shell Pink Medium Light,#E29A9A,226,154,154,0,31.9,31.9,11.4
+895,Shell Pink Medium,#D87E81,216,126,129,0,41.7,40.3,15.3
+896,Shell Pink,#9D3741,157,55,65,0,65,58.6,38.4
+897,Shell Pink Very Dark,#6C1C21,108,28,33,0,74.1,69.4,57.6
+898,Drab Brown Dark,#91714E,145,113,78,0,22.1,46.2,43.1
+899,Brown Grey Light,#BBA894,187,168,148,0,10.2,20.9,26.7
+900,Beaver Grey Light,#C0BEB2,192,190,178,0,1,7.3,24.7
+901,Old Gold Dark,#BF7B3F,191,123,63,0,35.6,67,25.1
+903,Brown Grey Medium,#896C51,137,108,81,0,21.2,40.9,46.3
+904,Brown Grey Medium,#5B4936,91,73,54,0,19.8,40.7,64.3
+905,Brown Grey Dark,#443224,68,50,36,0,26.5,47.1,73.3
+906,Hazelnut Brown Dark,#5D341C,93,52,28,0,44.1,69.9,63.5
+907,Gold Medium,#C08741,192,135,65,0,29.7,66.1,24.7
+914,Flesh Dark,#CA846C,202,132,108,0,34.7,46.5,20.8
+920,Antique Blue Medium Light,#89A2B2,137,162,178,23,9,0,30.2
+921,Antique Blue Medium,#738797,115,135,151,23.8,10.6,0,40.8
+922,Antique Blue Dark,#5F6777,95,103,119,20.2,13.4,0,53.3
+923,Christmas Green Very Dark,#1A583D,26,88,61,70.5,0,30.7,65.5
+924,Yellow Green Very Dark,#675D2F,103,93,47,0,9.7,54.4,59.6
+925,Yellow Green Very Dark,#F06428,240,100,40,0,58.3,83.3,5.9
+926,Beige Brown Ultra Very Light,#DBCEBB,219,206,187,0,5.9,14.6,14.1
+928,Blue Green Very Light,#B2D8E2,178,216,226,21.2,4.4,0,11.4
+933,Dusty Flesh Very Light,#E6D5C0,230,213,192,0,7.4,16.5,9.8
+936,Dusty Flesh Very Dark,#7D3B2D,125,59,45,0,52.8,64,51
+939,Blue Grey,#8690B0,134,144,176,23.9,18.2,0,31
+940,Delft Dark,#40558F,64,85,143,55.2,40.6,0,43.9
+941,Cornflower Blue Medium,#444680,68,70,128,46.9,45.3,0,49.8
+942,Tan Light,#E9C49A,233,196,154,0,15.9,33.9,8.6
+943,Tan Medium,#C69764,198,151,100,0,23.7,49.5,22.4
+944,Tan Very Dark,#834729,131,71,41,0,45.8,68.7,48.6
+945,Yellow Green Very Light,#CFAC75,207,172,117,0,16.9,43.5,18.8
+956,Yellow Green Ultra Very Light,#D4BF9A,212,191,154,0,9.9,27.4,16.9
+968,Dusty Violet Light,#ECC2BF,236,194,191,0,17.8,19.1,7.5
+969,Dusty Violet Medium,#D69097,214,144,151,0,32.7,29.4,16.1
+970,Dusty Violet Dark,#AD5567,173,85,103,0,50.9,40.5,32.2
+972,Dusty Violet Very Dark,#982D47,152,45,71,0,70.4,53.3,40.4
+975,Blue Very Light,#BECCD0,190,204,208,8.7,1.9,0,18.4
+976,Blue Light,#A1B7C4,161,183,196,17.9,6.6,0,23.1
+977,Blue Medium,#7FA3C6,127,163,198,35.9,17.7,0,22.4
+978,Blue Dark,#59799D,89,121,157,43.3,22.9,0,38.4
+979,Blue Very Dark,#3F5B85,63,91,133,52.6,31.6,0,47.8
+1001,Golden Brown,#DB7C3D,219,124,61,0,43.4,72.1,14.1
+1002,Golden Brown Very Light,#EA9B52,234,155,82,0,33.8,65,8.2
+1003,Salmon,#E67640,230,118,64,0,48.7,72.2,9.8
+1004,Orange Spice Very Dark,#C0442E,192,68,46,0,64.6,76,24.7
+1005,Christmas Red Ultra Very Dark,#971C23,151,28,35,0,81.5,76.8,40.8
+1006,Dusty Rose Very Dark,#A51F26,165,31,38,0,81.2,77,35.3
+1007,Flesh Very Dark,#B06755,176,103,85,0,41.5,51.7,31
+1008,Flesh Medium,#DCA28E,220,162,142,0,26.4,35.5,13.7
+1009,Cream,#F5DCC1,245,220,193,0,10.2,21.2,3.9
+1010,Copper Very Light,#F3D5B5,243,213,181,0,12.3,25.5,4.7
+1011,Peach Flesh Very Light,#E4CAB7,228,202,183,0,11.4,19.7,10.6
+1012,Flesh,#F7D6C2,247,214,194,0,13.4,21.5,3.1
+1013,Terracotta,#D57663,213,118,99,0,44.6,53.5,16.5
+1014,Mahogany Very Dark,#A52526,165,37,38,0,77.6,77,35.3
+1015,Mahogany Ultra Very Dark,#931C1F,147,28,31,0,81,78.9,42.4
+1016,Antique Mauve Very Light,#DC9EA7,220,158,167,0,28.2,24.1,13.7
+1017,Antique Mauve Medium,#C6868D,198,134,141,0,32.3,28.8,22.4
+1018,Antique Mauve Light,#A95E68,169,94,104,0,44.4,38.5,33.7
+1019,Antique Mauve Dark,#84353D,132,53,61,0,59.8,53.8,48.2
+1020,Dusty Rose Ultra Very Light,#F5CDCB,245,205,203,0,16.3,17.1,3.9
+1021,Dusty Rose Very Light,#F1BCBB,241,188,187,0,22,22.4,5.5
+1022,Dusty Rose Light,#EC9792,236,151,146,0,36,38.1,7.5
+1023,Dusty Rose,#E07377,224,115,119,0,48.7,46.9,12.2
+1024,Dusty Rose Medium,#D95960,217,89,96,0,59,55.8,14.9
+1025,Dusty Rose Dark,#BF2B34,191,43,52,0,77.5,72.8,25.1
+1026,Dusty Violet Very Light,#EDCFCA,237,207,202,0,12.7,14.8,7.1
+1027,Shell Pink Medium Dark,#BD565E,189,86,94,0,54.5,50.3,25.9
+1028,Dusty Plum Dark,#74182C,116,24,44,0,79.3,62.1,54.5
+1029,Plum Dark,#761730,118,23,48,0,80.5,59.3,53.7
+1030,Blue Violet Medium,#8674B2,134,116,178,24.7,34.8,0,30.2
+1031,Antique Blue Ultra Very Light,#D5E0E5,213,224,229,7,2.2,0,10.2
+1032,Antique Blue Very Light,#C3D3DC,195,211,220,11.4,4.1,0,13.7
+1033,Antique Blue,#AFC0CF,175,192,207,15.5,7.2,0,18.8
+1034,Antique Blue Medium Dark,#798EA4,121,142,164,26.2,13.4,0,35.7
+1035,Antique Blue Very Dark,#455166,69,81,102,32.4,20.6,0,60
+1036,Antique Blue Ultra Very Dark,#31405D,49,64,93,47.3,31.2,0,63.5
+1037,Blue Ultra Very Light,#DEE1DF,222,225,223,1.3,0,0.9,11.8
+1038,Baby Blue Medium,#91BDD3,145,189,211,31.3,10.4,0,17.3
+1039,Baby Blue Medium Dark,#73A8C7,115,168,199,42.2,15.6,0,22
+1040,Beaver Grey Dark,#9D998E,157,153,142,0,2.5,9.6,38.4
+1041,Beaver Grey Ultra Dark,#3D3B37,61,59,55,0,3.3,9.8,76.1
+1042,Sea Foam Green Very Light,#CED7C4,206,215,196,4.2,0,8.8,15.7
+1043,Pistachio Green Very Light,#CEDCAF,206,220,175,6.4,0,20.5,13.7
+1044,Pistachio Green Ultra Very Dark,#2F3F25,47,63,37,25.4,0,41.3,75.3
+1045,Golden Brown Medium Light,#D09057,208,144,87,0,30.8,58.2,18.4
+1046,Golden Brown Medium Dark,#BF6C37,191,108,55,0,43.5,71.2,25.1
+1047,Copper Light,#EEA467,238,164,103,0,31.1,56.7,6.7
+1048,Copper Medium,#D36D40,211,109,64,0,48.3,69.7,17.3
+1049,Copper Medium Dark,#C15D36,193,93,54,0,51.8,72,24.3
+1050,Mocha Brown Dark,#60392A,96,57,42,0,40.6,56.3,62.4
+1060,Teal Ultra Light,#C5D7DB,197,215,219,10,1.8,0,14.1
+1062,Teal Light,#91B6C0,145,182,192,24.5,5.2,0,24.7
+1064,Teal Medium Light,#749EAD,116,158,173,32.9,8.7,0,32.2
+1066,Teal Medium,#3A687D,58,104,125,53.6,16.8,0,51
+1068,Teal,#2C586A,44,88,106,58.5,17,0,58.4
+1070,Jade Light,#81C6BF,129,198,191,34.8,0,3.5,22.4
+1072,Jade Medium Light,#73B9AD,115,185,173,37.8,0,6.5,27.5
+1074,Jade Medium,#58A097,88,160,151,45,0,5.6,37.3
+1076,Jade,#3D867E,61,134,126,54.5,0,6,47.5
+1080,Taupe Ultra Light,#D8BBA3,216,187,163,0,13.4,24.5,15.3
+1082,Taupe Medium Light,#B79782,183,151,130,0,17.5,29,28.2
+1084,Taupe,#A07864,160,120,100,0,25,37.5,37.3
+1085,Taupe Dark,#917452,145,116,82,0,20,43.4,43.1
+1086,Taupe Medium Dark,#694B3A,105,75,58,0,28.6,44.8,58.8
+1088,Taupe Very Dark,#3E251E,62,37,30,0,40.3,51.6,75.7
+1089,Electric Blue Medium,#3EA9DD,62,169,221,71.9,23.5,0,13.3
+1090,Electric Blue Light,#79C5EC,121,197,236,48.7,16.5,0,7.5
+4146,Flesh Light,#E9BCA8,233,188,168,0,19.3,27.9,8.6
+5975,Terracotta Dark,#C4483C,196,72,60,0,63.3,69.4,23.1
+8581,Beaver Grey Medium,#7A7964,122,121,100,0,0.8,18,52.2
+9046,Christmas Red Bright,#D0242A,208,36,42,0,82.7,79.8,18.4
+9159,Baby Blue Very Light,#A5C2CF,165,194,207,20.3,6.3,0,18.8
+9575,Terracotta Light,#EA9C80,234,156,128,0,33.3,45.3,8.2
+1092,Teal Light,#C2E1DF,194,225,223,13.8,0,0.9,11.8
+1094,Pink Medium Light,#F3ADC0,243,173,192,0,28.8,21,4.7
+1096,Blue Grey Light,#C2CCD1,194,204,209,7.2,2.4,0,18
+1098,Red,#E13033,225,48,51,0,78.7,77.3,11.8
+1201,Desert Sand Light,#F4A9B7,244,169,183,0,30.7,25,4.3
+`,f=`DMC Code,Color Name,HEX,R,G,B,C,M,Y,K
+B5200,Snow White,#FAFAFF,250,250,255,2,2,0,0
+BLANC,White,#FCFCFC,252,252,252,0,0,0,1.2
+ECRU,Ecru,#EDDEC4,237,222,196,0,6.3,17.3,7.1
+01,White Tin,#C5C5C5,197,197,197,0,0,0,22.7
+02,Tin,#ABABAB,171,171,171,0,0,0,32.9
+03,Medium Tin,#908F90,144,143,144,0,0.7,0,43.5
+04,Dark Tin,#676464,103,100,100,0,2.9,2.9,59.6
+05,Light Driftwood,#BBAFA5,187,175,165,0,6.4,11.8,26.7
+06,Medium Light Driftwood,#B4A293,180,162,147,0,10,18.3,29.4
+07,Driftwood,#746256,116,98,86,0,15.5,25.9,54.5
+08,Dark Driftwood,#695B50,105,91,80,0,13.3,23.8,58.8
+09,Very Dark Cocoa,#483837,72,56,55,0,22.2,23.6,71.8
+10,Very Light Tender Green,#CECEB8,206,206,184,0,0,10.7,19.2
+11,Light Tender Green,#E0DC84,224,220,132,0,1.8,41.1,12.2
+12,Tender Green,#CFC662,207,198,98,0,4.3,52.7,18.8
+13,Medium Light Nile Green,#98C29C,152,194,156,21.6,0,19.6,23.9
+14,Pale Apple Green,#CED194,206,209,148,1.4,0,29.2,18
+15,Apple Green,#CDD684,205,214,132,4.2,0,38.3,16.1
+16,Light Chartreuse,#B0B56A,176,181,106,2.8,0,41.4,29
+17,Light Yellow Plum,#D5C551,213,197,81,0,7.5,62,16.5
+18,Yellow Plum,#D9BF4A,217,191,74,0,12,65.9,14.9
+19,Medium Light Autumn Gold,#CC9C52,204,156,82,0,23.5,59.8,20
+20,Shrimp,#F7D1B3,247,209,179,0,15.4,27.5,3.1
+21,Light Alizarin,#C0614D,192,97,77,0,49.5,59.9,24.7
+22,Alizarin,#922A29,146,42,41,0,71.2,71.9,42.7
+23,Apple Blossom,#E8DADF,232,218,223,0,6,3.9,9
+24,White Lavender,#E0D9E4,224,217,228,1.8,4.8,0,10.6
+25,Ultra Light Lavender,#D0CADB,208,202,219,5,7.8,0,14.1
+26,Pale Lavender,#BBB0D1,187,176,209,10.5,15.8,0,18
+27,White Violet,#D9D4D8,217,212,216,0,2.3,0.5,14.9
+28,Medium Light Eggplant,#8178A0,129,120,160,19.4,25,0,37.3
+29,Eggplant,#493C5E,73,60,94,22.3,36.2,0,63.1
+30,Medium Light Blueberry,#8A89B0,138,137,176,21.6,22.2,0,31
+31,Blueberry,#65629D,101,98,157,35.7,37.6,0,38.4
+32,Dark Blueberry,#565385,86,83,133,35.3,37.6,0,47.8
+33,Fuchsia,#884B8E,136,75,142,4.2,47.2,0,44.3
+34,Dark Fuchsia,#7A3070,122,48,112,0,60.7,8.2,52.2
+35,Very Dark Fuchsia,#58274B,88,39,75,0,55.7,14.8,65.5
+150,Dusty Rose ultra very dark,#911238,145,18,56,0,87.6,61.4,43.1
+151,Dusty Rose very light,#F2A8BA,242,168,186,0,30.6,23.1,5.1
+152,Shell Pink medium light,#CC8285,204,130,133,0,36.3,34.8,20
+153,Violet very light,#D19EC4,209,158,196,0,24.4,6.2,18
+154,Grape very dark,#38172B,56,23,43,0,58.9,23.2,78
+155,Blue Violet medium dark,#7665AB,118,101,171,31,40.9,0,32.9
+156,Blue Violet medium light,#737DB3,115,125,179,35.8,30.2,0,29.8
+157,Cornflower Blue very light,#95ABCA,149,171,202,26.2,15.3,0,20.8
+158,Cornflower Blue medium,#303065,48,48,101,52.5,52.5,0,60.4
+159,Grey Blue light,#97A6C5,151,166,197,23.4,15.7,0,22.7
+160,Grey Blue medium,#66759C,102,117,156,34.6,25,0,38.8
+161,Grey Blue,#4F5C85,79,92,133,40.6,30.8,0,47.8
+162,Blue ultra very light,#A2C1D0,162,193,208,22.1,7.2,0,18.4
+163,Celadon Green medium,#44715B,68,113,91,39.8,0,19.5,55.7
+164,Forest Green light,#87BF78,135,191,120,29.3,0,37.2,25.1
+165,Moss Green very light,#CDC965,205,201,101,0,2,50.7,19.6
+166,Moss Green medium light,#A19F20,161,159,32,0,1.2,80.1,36.9
+167,Yellow Beige very dark,#8D643A,141,100,58,0,29.1,58.9,44.7
+168,Pewter very light,#ABB3B7,171,179,183,6.6,2.2,0,28.2
+169,Pewter light,#707A7A,112,122,122,8.2,0,0,52.2
+208,Lavender very dark,#824596,130,69,150,13.3,54,0,41.2
+209,Lavender dark,#A66CB3,166,108,179,7.3,39.7,0,29.8
+210,Lavender medium,#BE91CD,190,145,205,7.3,29.3,0,19.6
+211,Lavender light,#D6B5E3,214,181,227,5.7,20.3,0,11
+221,Shell Pink very dark,#6D2329,109,35,41,0,67.9,62.4,57.3
+223,Shell Pink light,#B35C65,179,92,101,0,48.6,43.6,29.8
+224,Shell Pink very light,#D48F8B,212,143,139,0,32.5,34.4,16.9
+225,Shell Pink ultra very light,#F5C4BD,245,196,189,0,20,22.9,3.9
+300,Mahogany very dark,#632E20,99,46,32,0,53.5,67.7,61.2
+301,Mahogany medium,#994725,153,71,37,0,53.6,75.8,40
+304,Christmas Red medium,#9A0029,154,0,41,0,100,73.4,39.6
+307,Lemon,#FBDE18,251,222,24,0,11.6,90.4,1.6
+309,Rose deep,#AD203E,173,32,62,0,81.5,64.2,32.2
+310,Black,#0C0C0C,12,12,12,0,0,0,95.3
+311,Navy Blue medium,#203050,32,48,80,60,40,0,68.6
+312,Navy Blue light,#23426F,35,66,111,68.5,40.5,0,56.5
+315,Antique Mauve dark,#6F3842,111,56,66,0,49.5,40.5,56.5
+316,Antique Mauve medium,#AF6A7F,175,106,127,0,39.4,27.4,31.4
+317,Pewter Grey,#4F5460,79,84,96,17.7,12.5,0,62.4
+318,Steel Grey light,#808796,128,135,150,14.7,10,0,41.2
+319,Pistachio Green very dark,#25402C,37,64,44,42.2,0,31.2,74.9
+320,Pistachio Green medium,#5A7F5A,90,127,90,29.1,0,29.1,50.2
+321,Christmas Red,#AC0025,172,0,37,0,100,78.5,32.5
+322,Baby Blue dark,#40669B,64,102,155,58.7,34.2,0,39.2
+326,Rose very deep,#A61238,166,18,56,0,89.2,66.3,34.9
+327,Violet,#5E2E5E,94,46,94,0,51.1,0,63.1
+333,Blue Violet very dark,#4F3687,79,54,135,41.5,60,0,47.1
+334,Baby Blue medium,#4A75A6,74,117,166,55.4,29.5,0,34.9
+335,Rose,#D44464,212,68,100,0,67.9,52.8,16.9
+336,Navy Blue,#202C4F,32,44,79,59.5,44.3,0,69
+340,Blue Violet medium,#7C76BE,124,118,190,34.7,37.9,0,25.5
+341,Blue Violet light,#929ECB,146,158,203,28.1,22.2,0,20.4
+347,Salmon very dark,#A62030,166,32,48,0,80.7,71.1,34.9
+349,Coral dark,#BD1C29,189,28,41,0,85.2,78.3,25.9
+350,Coral medium,#D43434,212,52,52,0,75.5,75.5,16.9
+351,Coral,#E04D46,224,77,70,0,65.6,68.8,12.2
+352,Coral light,#F27365,242,115,101,0,52.5,58.3,5.1
+353,Peach,#FEA693,254,166,147,0,34.6,42.1,0.4
+355,Terra Cotta dark,#882E2C,136,46,44,0,66.2,67.6,46.7
+356,Terra Cotta medium,#AD4F45,173,79,69,0,54.3,60.1,32.2
+367,Pistachio Green dark,#406647,64,102,71,37.3,0,30.4,60
+368,Pistachio Green light,#7BA476,123,164,118,25,0,28,35.7
+369,Pistachio Green very light,#C1D49D,193,212,157,9,0,25.9,16.9
+370,Mustard medium,#826E3D,130,110,61,0,15.4,53.1,49
+371,Mustard,#8F7A47,143,122,71,0,14.7,50.3,43.9
+372,Mustard light,#A39361,163,147,97,0,9.8,40.5,36.1
+400,Mahogany dark,#753321,117,51,33,0,56.4,71.8,54.1
+402,Mahogany very light,#E8895B,232,137,91,0,40.9,60.8,9
+407,Clay Brown (3773),#B17260,177,114,96,0,35.6,45.8,30.6
+413,Pewter Grey dark,#3D4247,61,66,71,14.1,7,0,72.2
+414,Steel Grey dark,#646B78,100,107,120,16.7,10.8,0,52.9
+415,Pearl Grey,#9FA6B1,159,166,177,10.2,6.2,0,30.6
+420,Hazelnut Brown dark,#8E6034,142,96,52,0,32.4,63.4,44.3
+422,Hazelnut Brown light,#BC935B,188,147,91,0,21.8,51.6,26.3
+433,Brown medium,#643823,100,56,35,0,44,65,60.8
+434,Brown light,#804625,128,70,37,0,45.3,71.1,49.8
+435,Brown very light,#A36134,163,97,52,0,40.5,68.1,36.1
+436,Tan,#B97C4A,185,124,74,0,33,60,27.5
+437,Tan light,#D19C6A,209,156,106,0,25.4,49.3,18
+444,Lemon dark,#F0B900,240,185,0,0,22.9,100,5.9
+445,Lemon light,#F7F57A,247,245,122,0,0.8,50.6,3.1
+451,Shell Grey dark,#7A6C6C,122,108,108,0,11.5,11.5,52.2
+452,Shell Grey medium,#9F8B8B,159,139,139,0,12.6,12.6,37.6
+453,Shell Grey light,#BFADA6,191,173,166,0,9.4,13.1,25.1
+469,Avocado Green,#575F23,87,95,35,8.4,0,63.2,62.7
+470,Avocado Green light,#6A7830,106,120,48,11.7,0,60,52.9
+471,Avocado Green very light,#8D9D54,141,157,84,10.2,0,46.5,38.4
+472,Avocado Green ultra light,#BBBB60,187,187,96,0,0,48.7,26.7
+498,Christmas Red dark,#880025,136,0,37,0,100,72.8,46.7
+500,Blue Green very dark,#253D36,37,61,54,39.3,0,11.5,76.1
+501,Blue Green dark,#36544A,54,84,74,35.7,0,11.9,67.1
+502,Blue Green,#547565,84,117,101,28.2,0,13.7,54.1
+503,Blue Green medium,#839C8B,131,156,139,16,0,10.9,38.8
+505,Jade Green,#2C6142,44,97,66,54.6,0,32,62
+517,Wedgewood dark,#236391,35,99,145,75.9,31.7,0,43.1
+518,Wedgewood light,#3D84A4,61,132,164,62.8,19.5,0,35.7
+519,Sky Blue,#78B1C8,120,177,200,40,11.5,0,21.6
+520,Fern Green dark,#3A4734,58,71,52,18.3,0,26.8,72.2
+522,Fern Green,#727D5F,114,125,95,8.8,0,24,51
+523,Fern Green light,#8E9773,142,151,115,6,0,23.8,40.8
+524,Fern Green very light,#9AA284,154,162,132,4.9,0,18.5,36.5
+535,Ash Grey very light,#4B4B46,75,75,70,0,0,6.7,70.6
+543,Beige Brown ultra very light,#E5C7AD,229,199,173,0,13.1,24.5,10.2
+550,Violet very dark,#47184B,71,24,75,5.3,68,0,70.6
+552,Violet medium,#7B3881,123,56,129,4.7,56.6,0,49.4
+553,Violet,#924F92,146,79,146,0,45.9,0,42.7
+554,Violet light,#C48BC3,196,139,195,0,29.1,0.5,23.1
+561,Jade very dark,#295544,41,85,68,51.8,0,20,66.7
+562,Jade medium,#3A7C5A,58,124,90,53.2,0,27.4,51.4
+563,Jade light,#6DB18C,109,177,140,38.4,0,20.9,30.6
+564,Jade very light,#8BC9A3,139,201,163,30.8,0,18.9,21.2
+580,Moss Green dark,#5C5F20,92,95,32,3.2,0,66.3,62.7
+581,Moss Green,#797B29,121,123,41,1.6,0,66.7,51.8
+597,Turquoise,#4D929F,77,146,159,51.6,8.2,0,37.6
+598,Turquoise light,#7AB2B5,122,178,181,32.6,1.7,0,29
+600,Cranberry very dark,#AF0047,175,0,71,0,100,59.4,31.4
+601,Cranberry dark,#C61B57,198,27,87,0,86.4,56.1,22.4
+602,Cranberry medium,#D7306D,215,48,109,0,77.7,49.3,15.7
+603,Cranberry,#E94F8C,233,79,140,0,66.1,39.9,8.6
+604,Cranberry light,#F67AAD,246,122,173,0,50.4,29.7,3.5
+605,Cranberry very light,#FE98C1,254,152,193,0,40.2,24,0.4
+606,Burnt Orange-Red,#E81820,232,24,32,0,89.7,86.2,9
+608,Burnt Orange,#FF4225,255,66,37,0,74.1,85.5,0
+610,Drab Brown dark,#604A30,96,74,48,0,22.9,50,62.4
+611,Drab Brown,#705A3D,112,90,61,0,19.6,45.5,56.1
+612,Drab Brown light,#99815A,153,129,90,0,15.7,41.2,40
+613,Drab Brown very light,#AC966D,172,150,109,0,12.8,36.6,32.5
+632,Desert Sand ultra very dark,#723D34,114,61,52,0,46.5,54.4,55.3
+640,Beige Grey very dark,#72644F,114,100,79,0,12.3,30.7,55.3
+642,Beige Grey dark,#8C7D63,140,125,99,0,10.7,29.3,45.1
+644,Beige Grey medium,#BAB094,186,176,148,0,5.4,20.4,27.1
+645,Beaver Grey very dark,#4E5847,78,88,71,11.4,0,19.3,65.5
+646,Beaver Grey dark,#696359,105,99,89,0,5.7,15.2,58.8
+647,Beaver Grey medium,#7D7B70,125,123,112,0,1.6,10.4,51
+648,Beaver Grey light,#98988B,152,152,139,0,0,8.6,40.4
+666,Christmas Red bright,#C90023,201,0,35,0,100,82.6,21.2
+676,Old Gold light,#E6B469,230,180,105,0,21.7,54.3,9.8
+677,Old Gold very light,#EACF8E,234,207,142,0,11.5,39.3,8.2
+680,Old Gold dark,#A67334,166,115,52,0,30.7,68.7,34.9
+699,Christmas Green,#005F3D,0,95,61,100,0,35.8,62.7
+700,Christmas Green bright,#00703E,0,112,62,100,0,44.6,56.1
+701,Christmas Green light,#0D7338,13,115,56,88.7,0,51.3,54.9
+702,Kelly Green,#34853E,52,133,62,60.9,0,53.4,47.8
+703,Chartreuse,#60A746,96,167,70,42.5,0,58.1,34.5
+704,Chartreuse bright,#78AD44,120,173,68,30.6,0,60.7,32.2
+712,Cream,#F3E8D2,243,232,210,0,4.5,13.6,4.7
+718,Plum,#A7206F,167,32,111,0,80.8,33.5,34.5
+720,Orange Spice dark,#D2421B,210,66,27,0,68.6,87.1,17.6
+721,Orange Spice medium,#F25C2C,242,92,44,0,62,81.8,5.1
+722,Orange Spice light,#FF824A,255,130,74,0,49,71,0
+725,Topaz,#FCBA40,252,186,64,0,26.2,74.6,1.2
+726,Topaz light,#FFD447,255,212,71,0,16.9,72.2,0
+727,Topaz very light,#FFE471,255,228,113,0,10.6,55.7,0
+728,Golden Yellow,#EFAD3D,239,173,61,0,27.6,74.5,6.3
+729,Old Gold medium,#C28940,194,137,64,0,29.4,67,23.9
+730,Olive Green very dark,#574D20,87,77,32,0,11.5,63.2,65.9
+732,Olive Green (731),#695C20,105,92,32,0,12.4,69.5,58.8
+733,Olive Green medium,#988630,152,134,48,0,11.8,68.4,40.4
+734,Olive Green light,#B09D47,176,157,71,0,10.8,59.7,31
+738,Tan very light,#D5A978,213,169,120,0,20.7,43.7,16.5
+739,Tan ultra very light,#EDCDA6,237,205,166,0,13.5,30,7.1
+740,Tangerine (971),#FF6C1B,255,108,27,0,57.6,89.4,0
+741,Tangerine medium,#FF8820,255,136,32,0,46.7,87.5,0
+742,Tangerine light,#FFA523,255,165,35,0,35.3,86.3,0
+743,Yellow medium,#FFC847,255,200,71,0,21.6,72.2,0
+744,Yellow pale,#FFDE7A,255,222,122,0,12.9,52.2,0
+745,Yellow light pale,#FFDF89,255,223,137,0,12.5,46.3,0
+746,Off White,#FAF1C7,250,241,199,0,3.6,20.4,2
+747,Sky Blue very light,#ADDBE1,173,219,225,23.1,2.7,0,11.8
+754,Peach light,#F4B096,244,176,150,0,27.9,38.5,4.3
+758,Terra Cotta very light,#DB917A,219,145,122,0,33.8,44.3,14.1
+760,Salmon,#E5787F,229,120,127,0,47.6,44.5,10.2
+761,Salmon light,#F5A3A8,245,163,168,0,33.5,31.4,3.9
+762,Pearl Grey very light,#C4C5CE,196,197,206,4.9,4.4,0,19.2
+772,Yellow Green very light,#C2DA97,194,218,151,11,0,30.7,14.5
+775,Baby Blue very light,#B4CFDB,180,207,219,17.8,5.5,0,14.1
+777,Raspberry very dark,#780D2C,120,13,44,0,89.2,63.3,52.9
+778,Antique Mauve very light,#C9949E,201,148,158,0,26.4,21.4,21.2
+779,Cocoa dark,#543836,84,56,54,0,33.3,35.7,67.1
+780,Topaz ultra very dark,#8C4A23,140,74,35,0,47.1,75,45.1
+782,Topaz dark (781),#AC6520,172,101,32,0,41.3,81.4,32.5
+783,Topaz medium,#D0842C,208,132,44,0,36.5,78.8,18.4
+791,Cornflower Blue very dark,#2E2960,46,41,96,52.1,57.3,0,62.4
+792,Cornflower Blue dark,#3A3E82,58,62,130,55.4,52.3,0,49
+793,Cornflower Blue medium,#546497,84,100,151,44.4,33.8,0,40.8
+794,Cornflower Blue light,#708AB8,112,138,184,39.1,25,0,27.8
+796,Royal Blue dark,#242B70,36,43,112,67.9,61.6,0,56.1
+797,Royal Blue,#293A7C,41,58,124,66.9,53.2,0,51.4
+798,Delft Blue dark,#3D5FA3,61,95,163,62.6,41.7,0,36.1
+799,Delft Blue medium,#537BB5,83,123,181,54.1,32,0,29
+800,Delft Blue pale,#8EB2D4,142,178,212,33,16,0,16.9
+801,Coffee Brown dark,#573324,87,51,36,0,41.4,58.6,65.9
+803,Baby Blue ultra very dark,#203660,32,54,96,66.7,43.7,0,62.4
+807,Peacock Blue dark,#6D9DC7,109,157,199,45.2,21.1,0,22
+809,Delft Blue,#5C92BB,92,146,187,50.8,21.9,0,26.7
+813,Blue light,#6D9BC2,109,155,194,43.8,20.1,0,23.9
+814,Garnet dark,#5B1325,91,19,37,0,79.1,59.3,64.3
+815,Garnet medium,#700D23,112,13,35,0,88.4,68.8,56.1
+816,Garnet,#89132C,137,19,44,0,86.1,67.9,46.3
+817,Coral Red very dark,#A60D1B,166,13,27,0,92.2,83.7,34.9
+818,Baby Pink,#FFD0D2,255,208,210,0,18.4,17.6,0
+819,Baby Pink light,#FFDEDA,255,222,218,0,12.9,14.5,0
+820,Royal Blue very dark,#202063,32,32,99,67.7,67.7,0,61.2
+822,Beige Grey light,#E0D6BA,224,214,186,0,4.5,17,12.2
+823,Navy Blue dark,#20233A,32,35,58,44.8,39.7,0,77.3
+824,Blue very dark,#1B3E71,27,62,113,76.1,45.1,0,55.7
+825,Blue dark,#1B4F86,27,79,134,79.9,41,0,47.5
+826,Blue medium,#306BA1,48,107,161,70.2,33.5,0,36.9
+827,Blue very light,#87B4D0,135,180,208,35.1,13.5,0,18.4
+828,Blue ultra very light,#A6C9D4,166,201,212,21.7,5.2,0,16.9
+829,Golden Olive very dark,#5F4220,95,66,32,0,30.5,66.3,62.7
+830,Golden Olive dark,#694B23,105,75,35,0,28.6,66.7,58.8
+831,Golden Olive medium,#785C25,120,92,37,0,23.3,69.2,52.9
+832,Golden Olive,#9A762C,154,118,44,0,23.4,71.4,39.6
+833,Golden Olive light,#B08D3E,176,141,62,0,19.9,64.8,31
+834,Golden Olive very light,#C7A550,199,165,80,0,17.1,59.8,22
+838,Beige Brown very dark,#453029,69,48,41,0,30.4,40.6,72.9
+839,Beige Brown dark,#553D34,85,61,52,0,28.2,38.8,66.7
+840,Beige Brown medium,#7F5C4A,127,92,74,0,27.6,41.7,50.2
+841,Beige Brown light,#9B7863,155,120,99,0,22.6,36.1,39.2
+842,Beige Brown very light,#BF9F87,191,159,135,0,16.8,29.3,25.1
+844,Beaver Grey ultra dark,#3D3D36,61,61,54,0,0,11.5,76.1
+869,Hazelnut Brown very dark,#704725,112,71,37,0,36.6,67,56.1
+890,Pistachio Green ultra dark,#1B3623,27,54,35,50,0,35.2,78.8
+891,Carnation dark,#EF2C46,239,44,70,0,81.6,70.7,6.3
+892,Carnation medium,#F43853,244,56,83,0,77,66,4.3
+893,Carnation light,#FB4D6D,251,77,109,0,69.3,56.6,1.6
+894,Carnation very light,#FF7C9A,255,124,154,0,51.4,39.6,0
+895,Hunter Green very dark,#253D25,37,61,37,39.3,0,39.3,76.1
+898,Coffee Brown very dark,#4A2E23,74,46,35,0,37.8,52.7,71
+899,Rose medium,#EB6682,235,102,130,0,56.6,44.7,7.8
+900,Burnt Orange dark,#C63423,198,52,35,0,73.7,82.3,22.4
+902,Garnet very dark,#5B202E,91,32,46,0,64.8,49.5,64.3
+904,Parrot Green very dark,#345F25,52,95,37,45.3,0,61.1,62.7
+905,Parrot Green dark,#3D7123,61,113,35,46,0,69,55.7
+906,Parrot Green medium,#5A8B23,90,139,35,35.3,0,74.8,45.5
+907,Parrot Green light,#87A623,135,166,35,18.7,0,78.9,34.9
+909,Emerald Green very dark,#006540,0,101,64,100,0,36.6,60.4
+910,Emerald Green dark,#007A4B,0,122,75,100,0,38.5,52.2
+911,Emerald Green medium,#008853,0,136,83,100,0,39,46.7
+912,Emerald Green light,#309C66,48,156,102,69.2,0,34.6,38.8
+913,Nile Green medium,#4DAF78,77,175,120,56,0,31.4,31.4
+915,Plum dark,#76003D,118,0,61,0,100,48.3,53.7
+917,Plum medium,#911B5B,145,27,91,0,81.4,37.2,43.1
+918,Red Copper dark,#7B2E23,123,46,35,0,62.6,71.5,51.8
+919,Red Copper,#912920,145,41,32,0,71.7,77.9,43.1
+920,Copper medium,#A43D25,164,61,37,0,62.8,77.4,35.7
+921,Copper,#BC4D2E,188,77,46,0,59,75.5,26.3
+922,Copper light,#D7633A,215,99,58,0,54,73,15.7
+924,Grey Green very dark,#294247,41,66,71,42.3,7,0,72.2
+926,Grey Green medium,#617878,97,120,120,19.2,0,0,52.9
+927,Grey Green light,#889A97,136,154,151,11.7,0,1.9,39.6
+928,Grey Green very light,#ABB5B1,171,181,177,5.5,0,2.2,29
+930,Antique Blue dark,#30465A,48,70,90,46.7,22.2,0,64.7
+931,Antique Blue medium,#536A82,83,106,130,36.2,18.5,0,49
+932,Antique Blue light,#758FA6,117,143,166,29.5,13.9,0,34.9
+934,Black Avocado Green,#2E3425,46,52,37,11.5,0,28.8,79.6
+935,Avocado Green dark,#363D2C,54,61,44,11.5,0,27.9,76.1
+936,Avocado Green very dark,#424423,66,68,35,2.9,0,48.5,73.3
+937,Avocado Green medium,#465429,70,84,41,16.7,0,51.2,67.1
+938,Coffee Brown ultra dark,#3D2923,61,41,35,0,32.8,42.6,76.1
+939,Navy Blue very dark,#1B1B2C,27,27,44,38.6,38.6,0,82.7
+943,Aquamarine medium,#008F79,0,143,121,100,0,15.4,43.9
+945,Tawny medium,#EEB28F,238,178,143,0,25.2,39.9,6.7
+946,Burnt Orange medium,#F53D1C,245,61,28,0,75.1,88.6,3.9
+947,Burnt Orange,#FF4A1B,255,74,27,0,71,89.4,0
+948,Peach very light,#FDD5C1,253,213,193,0,15.8,23.7,0.8
+950,Desert Sand light,#DFAC93,223,172,147,0,22.9,34.1,12.5
+951,Tawny light,#F7CEA9,247,206,169,0,16.6,31.6,3.1
+954,Nile Green,#6CBE87,108,190,135,43.2,0,28.9,25.5
+955,Nile Green light,#97DCA8,151,220,168,31.4,0,23.6,13.7
+956,Geranium,#F94472,249,68,114,0,72.7,54.2,2.4
+957,Geranium pale,#FF7CA2,255,124,162,0,51.4,36.5,0
+958,Sea Green dark,#009887,0,152,135,100,0,11.2,40.4
+959,Sea Green medium,#30AD9D,48,173,157,72.3,0,9.2,32.2
+961,Dusty Rose dark,#D94B6F,217,75,111,0,65.4,48.8,14.9
+962,Dusty Rose medium,#E46486,228,100,134,0,56.1,41.2,10.6
+963,Dusty Rose ultra very light,#FFBAC4,255,186,196,0,27.1,23.1,0
+964,Sea Green light,#75CDC1,117,205,193,42.9,0,5.9,19.6
+966,Baby Green medium,#8DBF8E,141,191,142,26.2,0,25.7,25.1
+967,Apricot very light,#FFBEA9,255,190,169,0,25.5,33.7,0
+970,Pumpkin light,#FF6624,255,102,36,0,60,85.9,0
+972,Canary deep,#FFA400,255,164,0,0,35.7,100,0
+973,Canary bright,#FFCF00,255,207,0,0,18.8,100,0
+975,Golden Brown dark,#793A20,121,58,32,0,52.1,73.6,52.5
+976,Golden Brown medium,#C46A2C,196,106,44,0,45.9,77.6,23.1
+977,Golden Brown light,#E6833D,230,131,61,0,43,73.5,9.8
+986,Forest Green very dark,#25502C,37,80,44,53.7,0,45,68.6
+987,Forest Green dark,#42663A,66,102,58,35.3,0,43.1,60
+988,Forest Green medium,#5A8044,90,128,68,29.7,0,46.9,49.8
+989,Forest Green,#6C9254,108,146,84,26,0,42.5,42.7
+991,Aquamarine dark,#0D5850,13,88,80,85.2,0,9.1,65.5
+992,Aquamarine medium,#369380,54,147,128,63.3,0,12.9,42.4
+993,Aquamarine light,#55AB90,85,171,144,50.3,0,15.8,32.9
+995,Electric Blue dark,#006FBC,0,111,188,100,41,0,26.3
+996,Electric Blue medium,#0097E1,0,151,225,100,32.9,0,11.8
+3011,Khaki Green dark,#5C5830,92,88,48,0,4.3,47.8,63.9
+3012,Khaki Green medium,#7D7340,125,115,64,0,8,48.8,51
+3013,Khaki Green light,#A39F6A,163,159,106,0,2.5,35,36.1
+3021,Brown Grey very dark,#46382E,70,56,46,0,20,34.3,72.5
+3022,Brown Grey medium,#73725F,115,114,95,0,0.9,17.4,54.9
+3023,Brown Grey light,#938D76,147,141,118,0,4.1,19.7,42.4
+3024,Brown Grey very light,#B9B09F,185,176,159,0,4.9,14.1,27.5
+3031,Mocha Brown very dark,#422E25,66,46,37,0,30.3,43.9,74.1
+3032,Mocha Brown medium,#968669,150,134,105,0,10.7,30,41.2
+3033,Mocha Brown very light,#D2BDA6,210,189,166,0,10,21,17.6
+3041,Antique Violet medium,#725465,114,84,101,0,26.3,11.4,55.3
+3042,Antique Violet light,#967C8D,150,124,141,0,17.3,6,41.2
+3045,Yellow Beige dark,#9F7646,159,118,70,0,25.8,56,37.6
+3046,Yellow Beige medium,#C5A966,197,169,102,0,14.2,48.2,22.7
+3047,Yellow Beige light,#DBC991,219,201,145,0,8.2,33.8,14.1
+3051,Green Grey dark,#464D2E,70,77,46,9.1,0,40.3,69.8
+3052,Green Grey medium,#717C54,113,124,84,8.9,0,32.3,51.4
+3053,Green Grey,#8B9669,139,150,105,7.3,0,30,41.2
+3064,Desert Sand,#B87359,184,115,89,0,37.5,51.6,27.8
+3072,Beaver Grey very light,#C2C6BE,194,198,190,2,0,4,22.4
+3078,Golden Yellow very light,#FAEB97,250,235,151,0,6,39.6,2
+3325,Baby Blue light,#8EB8D8,142,184,216,34.3,14.8,0,15.3
+3326,Rose light (776),#F793A6,247,147,166,0,40.5,32.8,3.1
+3328,Salmon dark,#C1424B,193,66,75,0,65.8,61.1,24.3
+3340,Apricot medium,#FF6647,255,102,71,0,60,72.2,0
+3341,Apricot,#FF8166,255,129,102,0,49.4,60,0
+3345,Hunter Green dark,#344A25,52,74,37,29.7,0,50,71
+3346,Hunter Green,#4D6130,77,97,48,20.6,0,50.5,62
+3347,Yellow Green medium,#6B834A,107,131,74,18.3,0,43.5,48.6
+3348,Yellow Green light,#A3B86A,163,184,106,11.4,0,42.4,27.8
+3350,Dusty Rose ultra dark,#9E2946,158,41,70,0,74.1,55.7,38
+3354,Dusty Rose light,#E7899E,231,137,158,0,40.7,31.6,9.4
+3362,Pine Green dark,#424A33,66,74,51,10.8,0,31.1,71
+3363,Pine Green medium,#5B6B4A,91,107,74,15,0,30.8,58
+3364,Pine Green,#89965F,137,150,95,8.7,0,36.7,41.2
+3371,Black Brown,#2B2421,43,36,33,0,16.3,23.3,83.1
+3607,Plum light,#BF3D8F,191,61,143,0,68.1,25.1,25.1
+3608,Plum very light,#D770AD,215,112,173,0,47.9,19.5,15.7
+3609,Plum ultra light,#E591CE,229,145,206,0,36.7,10,10.2
+3685,Mauve dark,#6A1836,106,24,54,0,77.4,49.1,58.4
+3687,Mauve,#B13D64,177,61,100,0,65.5,43.5,30.6
+3688,Mauve medium,#D16987,209,105,135,0,49.8,35.4,18
+3689,Mauve light,#F5ACC2,245,172,194,0,29.8,20.8,3.9
+3705,Melon dark,#EE3A4D,238,58,77,0,75.6,67.6,6.7
+3706,Melon medium,#FF6175,255,97,117,0,62,54.1,0
+3708,Melon light,#FF889E,255,136,158,0,46.7,38,0
+3712,Salmon medium,#CF575C,207,87,92,0,58,55.6,18.8
+3713,Salmon very light,#FFC7C7,255,199,199,0,22,22,0
+3716,Dusty Rose very light,#FE97AF,254,151,175,0,40.6,31.1,0.4
+3721,Shell Pink dark,#85303A,133,48,58,0,63.9,56.4,47.8
+3722,Shell Pink medium,#99444D,153,68,77,0,55.6,49.7,40
+3726,Antique Mauve dark,#804653,128,70,83,0,45.3,35.2,49.8
+3727,Antique Mauve light,#C9899C,201,137,156,0,31.8,22.4,21.2
+3731,Dusty Rose very dark,#C1405F,193,64,95,0,66.8,50.8,24.3
+3733,Dusty Rose,#E06C85,224,108,133,0,51.8,40.6,12.2
+3740,Antique Violet dark,#5C3E4D,92,62,77,0,32.6,16.3,63.9
+3743,Antique Violet very light,#BBA9B8,187,169,184,0,9.6,1.6,26.7
+3746,Blue Violet dark,#604F9F,96,79,159,39.6,50.3,0,37.6
+3747,Blue Violet very light,#ADBADF,173,186,223,22.4,16.6,0,12.5
+3750,Antique Blue very dark,#23384F,35,56,79,55.7,29.1,0,69
+3752,Antique Blue very light,#9DB1BD,157,177,189,16.9,6.3,0,25.9
+3753,Antique Blue ultra very light,#B1C6D7,177,198,215,17.7,7.9,0,15.7
+3755,Baby Blue,#6998C4,105,152,196,46.4,22.4,0,23.1
+3756,Baby Blue ultra very light,#DDEDF3,221,237,243,9.1,2.5,0,4.7
+3760,Wedgewood (806),#2C6F99,44,111,153,71.2,27.5,0,40
+3761,Sky Blue light,#8EC4D8,142,196,216,34.3,9.3,0,15.3
+3765,Very Dark Peacock Blue,#005879,0,88,121,100,27.3,0,52.5
+3766,Peacock Blue light,#58A2B9,88,162,185,52.4,12.4,0,27.5
+3768,Grey Green dark,#425B61,66,91,97,32,6.2,0,62
+3770,Tawny very light,#FFE6C9,255,230,201,0,9.8,21.2,0
+3771,Terra Cotta ultra very light,#DF9B7B,223,155,123,0,30.5,44.8,12.5
+3772,Desert Sand very dark,#935A4B,147,90,75,0,38.8,49,42.4
+3774,Desert Sand very light,#E9BEA6,233,190,166,0,18.5,28.8,8.6
+3776,Mahogany light,#BD5F36,189,95,54,0,49.7,71.4,25.9
+3777,Terra Cotta very dark,#822529,130,37,41,0,71.5,68.5,49
+3778,Terra Cotta light,#C1695A,193,105,90,0,45.6,53.4,24.3
+3779,Terra Cotta ultra very light,#E8A492,232,164,146,0,29.3,37.1,9
+3781,Mocha Brown dark,#503D2E,80,61,46,0,23.7,42.5,68.6
+3782,Mocha Brown light,#AC9278,172,146,120,0,15.1,30.2,32.5
+3787,Brown Grey dark,#50473D,80,71,61,0,11.2,23.7,68.6
+3790,Beige Grey ultra dark,#614D3D,97,77,61,0,20.6,37.1,62
+3799,Pewter Grey very dark,#303438,48,52,56,14.3,7.1,0,78
+3801,Christmas Red light,#E02338,224,35,56,0,84.4,75,12.2
+3802,Antique Mauve very dark,#602C36,96,44,54,0,54.2,43.7,62.4
+3803,Mauve medium,#7B2544,123,37,68,0,69.9,44.7,51.8
+3804,Cyclamen Pink dark,#BA1861,186,24,97,0,87.1,47.8,27.1
+3805,Cyclamen Pink,#CC2B73,204,43,115,0,78.9,43.6,20
+3806,Cyclamen Pink light,#E45592,228,85,146,0,62.7,36,10.6
+3807,Cornflower Blue,#47548F,71,84,143,50.3,41.3,0,43.9
+3808,Turquoise ultra very dark,#004757,0,71,87,100,18.4,0,65.9
+3809,Turquoise very dark,#135C6D,19,92,109,82.6,15.6,0,57.3
+3810,Turquoise dark,#347B8C,52,123,140,62.9,12.1,0,45.1
+3811,Turquoise very light,#95C5C6,149,197,198,24.7,0.5,0,22.4
+3812,Sea Green very dark,#00887C,0,136,124,100,0,8.8,46.7
+3813,Blue Green light,#8CAC9D,140,172,157,18.6,0,8.7,32.5
+3814,Aquamarine,#0D7163,13,113,99,88.5,0,12.4,55.7
+3815,Celadon Green dark,#386A57,56,106,87,47.2,0,17.9,58.4
+3816,Celadon Green,#53836F,83,131,111,36.6,0,15.3,48.6
+3817,Celadon Green light,#82AB96,130,171,150,24,0,12.3,32.9
+3818,Emerald Green ultra very dark,#004F36,0,79,54,100,0,31.6,69
+3819,Moss Green light,#B8B738,184,183,56,0,0.5,69.6,27.8
+3820,Straw dark,#D6962B,214,150,43,0,29.9,79.9,16.1
+3821,Straw,#E3B044,227,176,68,0,22.5,70,11
+3822,Straw light,#F0C65F,240,198,95,0,17.5,60.4,5.9
+3823,Yellow ultra pale,#FEEDB4,254,237,180,0,6.7,29.1,0.4
+3824,Apricot light,#FFA58D,255,165,141,0,35.3,44.7,0
+3825,Pumpkin pale,#FF9A63,255,154,99,0,39.6,61.2,0
+3826,Golden Brown,#9C4D25,156,77,37,0,50.6,76.3,38.8
+3827,Golden Brown pale,#E19858,225,152,88,0,32.4,60.9,11.8
+3828,Hazelnut Brown,#A67946,166,121,70,0,27.1,57.8,34.9
+3829,Old Gold very dark,#A46C2E,164,108,46,0,34.1,72,35.7
+3830,Terra Cotta,#9C3A36,156,58,54,0,62.8,65.4,38.8
+3831,Raspberry dark,#A8203A,168,32,58,0,81,65.5,34.1
+3832,Raspberry medium,#C63850,198,56,80,0,71.7,59.6,22.4
+3833,Raspberry light,#CF556A,207,85,106,0,58.9,48.8,18.8
+3834,Grape dark,#5B294A,91,41,74,0,54.9,18.7,64.3
+3835,Grape medium,#714061,113,64,97,0,43.4,14.2,55.7
+3836,Grape light,#A26C90,162,108,144,0,33.3,11.1,36.5
+3837,Lavender ultra dark,#6C3681,108,54,129,16.3,58.1,0,49.4
+3838,Lavender Blue dark,#4A5CA6,74,92,166,55.4,44.6,0,34.9
+3839,Lavender Blue medium,#5B70AE,91,112,174,47.7,35.6,0,31.8
+3840,Lavender Blue light,#85A3CE,133,163,206,35.4,20.9,0,19.2
+3841,Baby Blue pale,#9FBCCE,159,188,206,22.8,8.7,0,19.2
+3842,Wedgewood dark,#0D3E6B,13,62,107,87.9,42.1,0,58
+3843,Electric Blue,#0081C7,0,129,199,100,35.2,0,22
+3844,Bright Turquoise dark,#0089B2,0,137,178,100,23,0,30.2
+3845,Bright Turquoise medium,#009BBE,0,155,190,100,18.4,0,25.5
+3846,Bright Turquoise light,#00AFD1,0,175,209,100,16.3,0,18
+3847,Teal Green dark,#00504D,0,80,77,100,0,3.7,68.6
+3848,Teal Green medium,#186D6A,24,109,106,78,0,2.8,57.3
+3849,Teal Green light,#44918D,68,145,141,53.1,0,2.8,43.1
+3850,Bright Green dark,#00856B,0,133,107,100,0,19.5,47.8
+3851,Bright Green light,#009F82,0,159,130,100,0,18.2,37.6
+3852,Straw very dark,#C3801B,195,128,27,0,34.4,86.2,23.5
+3853,Autumn Gold dark,#D1642C,209,100,44,0,52.2,78.9,18
+3854,Autumn Gold medium,#F29347,242,147,71,0,39.3,70.7,5.1
+3855,Autumn Gold light,#F9C170,249,193,112,0,22.5,55,2.4
+3856,Mahogany ultra very light,#E5A472,229,164,114,0,28.4,50.2,10.2
+3857,Rosewood dark,#572523,87,37,35,0,57.5,59.8,65.9
+3858,Rosewood medium,#753D36,117,61,54,0,47.9,53.8,54.1
+3859,Rosewood light,#B26D5C,178,109,92,0,38.8,48.3,30.2
+3860,Cocoa,#6F4F4B,111,79,75,0,28.8,32.4,56.5
+3861,Cocoa light,#8D6C6A,141,108,106,0,23.4,24.8,44.7
+3862,Mocha Beige dark,#7C553E,124,85,62,0,31.5,50,51.4
+3863,Mocha Beige medium,#92694F,146,105,79,0,28.1,45.9,42.7
+3864,Mocha Beige light,#B1896F,177,137,111,0,22.6,37.3,30.6
+3865,Winter White,#F7F7F0,247,247,240,0,0,2.8,3.1
+3866,Mocha Brown ultra very light,#DDD1BE,221,209,190,0,5.4,14,13.3
+504,Blue Green Very Light,#ACDAC1,172,218,193,21.1,0,11.5,14.5
+731,Olive Green Dark,#6B580B,107,88,11,0,17.8,89.7,58
+776,Pink Medium,#FCA8AD,252,168,173,0,33.3,31.3,1.2
+781,Topaz Very Dark,#A25F1F,162,95,31,0,41.4,80.9,36.5
+806,Peacock Blue Dark,#1D6C87,29,108,135,78.5,20,0,47.1
+971,Pumpkin,#FC670D,252,103,13,0,59.1,94.8,1.2
+3773,Desert Sand Medium,#CF866D,207,134,109,0,35.3,47.3,18.8
+`;function p(e){let t=e.trim().split(/\r?\n/).slice(1).map(e=>e.split(`,`)).filter(e=>e.length>=6&&e[0]!==``).map(e=>({code:e[0].trim(),name:e[1].trim(),rgb:[Number(e[3]),Number(e[4]),Number(e[5])]})),n=e=>/^\d+$/.test(e)?Number(e):-1;return t.sort((e,t)=>n(e.code)-n(t.code)||e.code.localeCompare(t.code))}let m={dmc:{id:`dmc`,name:`DMC`,colors:p(f),defaults:{draw:`310`,gradient:[`310`,`BLANC`]}},anchor:{id:`anchor`,name:`Anchor`,colors:p(d),defaults:{draw:`403`,gradient:[`403`,`2`]}}};Object.keys(m);let h=/* @__PURE__ */ new Map;function g(e){let t=h.get(e);if(!t){let r=m[e],i=r.colors.length,a=new Uint8Array((i+1)*3).fill(255,0,3),o=new Float64Array((i+1)*3);n(255,255,255,o,0);let s=[{id:0,brand:``,code:``,name:`Empty`,rgb:[255,255,255],lab:[o[0],o[1],o[2]],symbol:``}];r.colors.forEach((e,t)=>{let i=t+1;a.set(e.rgb,i*3),n(e.rgb[0],e.rgb[1],e.rgb[2],o,i*3),s.push({id:i,brand:r.name,code:e.code,name:e.name,rgb:e.rgb,lab:[o[i*3],o[i*3+1],o[i*3+2]],symbol:u[t%u.length]})}),t={size:i,entries:s,rgb:a,lab:o},h.set(e,t)}return t}let _=e=>e===0?1:Math.sin(Math.PI*e)/(Math.PI*e),v={bilinear:{support:1,weight:e=>Math.max(0,1-Math.abs(e))},bicubic:{support:2,weight:e=>{let t=Math.abs(e);return t<1?1.5*t*t*t-2.5*t*t+1:t<2?-.5*t*t*t+2.5*t*t-4*t+2:0}},lanczos:{support:3,weight:e=>Math.abs(e)<3?_(e)*_(e/3):0}};function y(e,t,n){let r=e/t,i=Math.max(1,r),a=n.support*i,o=Math.ceil(a)*2+1,s=new Int32Array(t),c=new Int32Array(t),l=new Float32Array(t*o);for(let u=0;u<t;u++){let t=(u+.5)*r,d=Math.max(0,Math.floor(t-a)),f=Math.min(e,Math.ceil(t+a)),p=0;for(let e=d;e<f;e++){let r=n.weight((e+.5-t)/i);l[u*o+(e-d)]=r,p+=r}for(let e=0;e<f-d;e++)l[u*o+e]/=p||1;s[u]=d,c[u]=f-d}return{first:s,count:c,weights:l,taps:o}}function b(e,t,n,r,i,a){let o=new Uint8ClampedArray(r*i*4);if(a===`nearest`){for(let a=0;a<i;a++){let s=Math.min(n-1,Math.floor((a+.5)*n/i))*t;for(let n=0;n<r;n++){let i=(s+Math.min(t-1,Math.floor((n+.5)*t/r)))*4,c=(a*r+n)*4;o[c]=e[i],o[c+1]=e[i+1],o[c+2]=e[i+2],o[c+3]=e[i+3]}}return o}let s=v[a],c=y(t,r,s),l=new Float32Array(r*n*4);for(let i=0;i<n;i++)for(let n=0;n<r;n++){let a=0,o=0,s=0,u=0,d=n*c.taps;for(let r=0,l=(i*t+c.first[n])*4;r<c.count[n];r++,l+=4){let t=c.weights[d+r]*(e[l+3]/255);a+=e[l]*t,o+=e[l+1]*t,s+=e[l+2]*t,u+=t}let f=(i*r+n)*4;l[f]=a,l[f+1]=o,l[f+2]=s,l[f+3]=u}let u=y(n,i,s);for(let e=0;e<i;e++){let t=e*u.taps;for(let n=0;n<r;n++){let i=0,a=0,s=0,c=0;for(let o=0,d=(u.first[e]*r+n)*4;o<u.count[e];o++,d+=r*4){let e=u.weights[t+o];i+=l[d]*e,a+=l[d+1]*e,s+=l[d+2]*e,c+=l[d+3]*e}let d=(e*r+n)*4;c>0&&(o[d]=i/c,o[d+1]=a/c,o[d+2]=s/c),o[d+3]=c*255}}return o}let x=[6,4],S=e=>1/(1+Math.exp(-e));function C(e,t){return e.subarray(0,t).sort()[t-1>>1]}function w(e,t,n,r,i,a){let o=Math.floor(t/i),s=Math.floor(n/i),c=Math.max(r-i,0)>>1,l=new Float32Array(o*s),u=new Float32Array(r*r);for(let d=0;d<s;d++)for(let s=0;s<o;s++){let f=0;for(let a=0;a<r;a++){let o=Math.min(n-1,Math.max(0,d*i-c+a));for(let n=0;n<r;n++){let r=Math.min(t-1,Math.max(0,s*i-c+n));u[f++]=e[o*t+r]}}l[d*o+s]=a(u,f)}return l}function T(e,t,n,r,i){let a=Math.floor(t/i),o=Math.floor(n/i),s=Math.max(r-i,0)>>1,c=new Uint8Array(e.length);for(let t=0;t<e.length;t++)c[t]=Math.round(e[t]*255);let l=new Float32Array(a*o),u=/* @__PURE__ */ new Int32Array(256),d=(r*r-1>>1)+1,f=new Int32Array(r),p=(e,n)=>Math.min(t-1,Math.max(0,e))+0*n;for(let e=0;e<o;e++){for(let a=0;a<r;a++)f[a]=Math.min(n-1,Math.max(0,e*i-s+a))*t;u.fill(0);for(let t=0;t<r;t++){let n=p(t-s,e);for(let e=0;e<r;e++)u[c[f[e]+n]]++}for(let t=0;t<a;t++){if(t>0){let n=(t-1)*i-s;for(let t=0;t<i;t++){let i=p(n+t,e),a=p(n+r+t,e);for(let e=0;e<r;e++)u[c[f[e]+i]]--,u[c[f[e]+a]]++}}let n=0;for(let e=u[0];e<d;e+=u[++n]);l[e*a+t]=n/255}}return l}let E=(e,t)=>{let n=-1/0;for(let r=0;r<t;r++)e[r]>n&&(n=e[r]);return n},D=(e,t)=>{let n=1/0;for(let r=0;r<t;r++)e[r]<n&&(n=e[r]);return n};function O(e,t,n,r,i){let a=new Float32Array(r*i);for(let o=0;o<i;o++){let s=Math.max(0,Math.min(n-1,(o+.5)*n/i-.5)),c=Math.floor(s),l=Math.min(n-1,c+1),u=s-c;for(let n=0;n<r;n++){let i=Math.max(0,Math.min(t-1,(n+.5)*t/r-.5)),s=Math.floor(i),d=Math.min(t-1,s+1),f=i-s,p=e[c*t+s]*(1-f)+e[c*t+d]*f,m=e[l*t+s]*(1-f)+e[l*t+d]*f;a[o*r+n]=p*(1-u)+m*u}}return a}function k(e,t,n,r){let i=(r>>2)*2,a=T(e,t,n,r*2,i),o=w(e,t,n,r,i,E),s=w(e,t,n,r,i,D),c=new Float32Array(a.length);for(let e=0;e<c.length;e++){let t=o[e]-a[e],n=a[e]-s[e];c[e]=S((a[e]-.5)*9-(t-n)*4)}let l=O(c,Math.floor(t/i),Math.floor(n/i),t,n),u=1/0,d=-1/0;for(let e=0;e<l.length;e++)l[e]<u&&(u=l[e]),l[e]>d&&(d=l[e]);for(let e=0;e<l.length;e++)l[e]=(l[e]-u)/(d-u+1e-8);return l}function A(e,t,n,r,i,a){if(r===0)return e;let o=t*3,s=e.length,c=new Uint8Array(s);if(i)c.set(e);else for(let t=0;t<s;t++)c[t]=255-e[t];let l=new Uint8Array(s),u=new Uint8Array(s);for(let e=0;e<r;e++){if(a){for(let e=0,t=0;e<n;e++){let e=t+o;for(let n=t;t<e;t++){let r=c[t];t-3>=n&&c[t-3]>r&&(r=c[t-3]),t+3<e&&c[t+3]>r&&(r=c[t+3]),u[t]=r}}for(let e=0;e<s;e++){let t=u[e];e>=o&&u[e-o]>t&&(t=u[e-o]),e+o<s&&u[e+o]>t&&(t=u[e+o]),l[e]=t}}else for(let e=0,t=0;e<n;e++){let e=t+o;for(let n=t;t<e;t++){let r=c[t];t-3>=n&&c[t-3]>r&&(r=c[t-3]),t+3<e&&c[t+3]>r&&(r=c[t+3]),t>=o&&c[t-o]>r&&(r=c[t-o]),t+o<s&&c[t+o]>r&&(r=c[t+o]),l[t]=r}}let e=c;c=l,l=e}let d=new Uint8ClampedArray(s);if(i)d.set(c);else for(let e=0;e<s;e++)d[e]=255-c[e];return d}function j(e,t,n,r,i,a){let o=k(t,n,r,a),s=A(e,n,r,i,!1,!0),c=A(e,n,r,i,!0,!0),l=new Uint8ClampedArray(e.length);for(let t=0;t<o.length;t++){let n=o[t],r=S((n-.5)*5)*.25;for(let i=0;i<3;i++){let a=s[t*3+i]*n+c[t*3+i]*(1-n);l[t*3+i]=Math.floor(a*(1-r)+e[t*3+i]*r)}}return A(A(A(l,n,r,i,!1,!1),n,r,i*2,!0,!1),n,r,i,!1,!1)}function M(e,t,n,r){let i=r*2+1,a=(e,t,n,a,o)=>{let s=e[n],c=e[n+(a-1)*o],l=s*(r+1);for(let t=1;t<=r;t++)l+=t<a?e[n+t*o]:c;for(let u=0;u<a;u++){t[n+u*o]=l/i;let d=u+r+1,f=u-r;l+=(d<a?e[n+d*o]:c)-(f>=0?e[n+f*o]:s)}},o=new Float32Array(e.length);for(let r=0;r<n;r++)a(e,o,r*t,t,1);let s=new Float32Array(e.length);for(let e=0;e<t;e++)a(o,s,e,n,t);return s}function N(e,t,n){let r=e;for(let e=0;e<3;e++)r=M(r,t,n,11);return r}function P(e,t,r,i){let o=r*i,s=e=>{let t=new Float32Array(o*3),r=[0,0,0];for(let i=0;i<o;i++)n(e[i*3],e[i*3+1],e[i*3+2],r),t[i*3]=r[0]/100,t[i*3+1]=(r[1]+128)/255,t[i*3+2]=(r[2]+128)/255;return t},c=e=>{let t=0;for(let n=0;n<e.length;n++)t+=e[n];let n=t/e.length,r=0;for(let t=0;t<e.length;t++)r+=(e[t]-n)*(e[t]-n);return{mean:n,deviation:Math.sqrt(r/e.length)}},l=s(e),u=c(l),d=c(s(t)),f=new Uint8ClampedArray(o*3);for(let e=0;e<o;e++){let t=t=>Math.min(1,Math.max(0,(l[e*3+t]-u.mean)/(u.deviation||1)*d.deviation+d.mean));a(t(0)*100,t(1)*255-128,t(2)*255-128,f,e*3)}let p=new Uint8ClampedArray(o*3),m=new Float32Array(o),h=new Float32Array(o);for(let e=0;e<3;e++){for(let n=0;n<o;n++)m[n]=f[n*3+e],h[n]=t[n*3+e];let n=N(m,r,i),a=N(h,r,i);for(let t=0;t<o;t++)p[t*3+e]=m[t]-n[t]+a[t]}return p}function F(e,t,r,i){let o=t*r,s=new Float32Array(o),c=new Float32Array(o),l=new Float32Array(o),u=[0,0,0];for(let t=0;t<o;t++)n(e[t*3],e[t*3+1],e[t*3+2],u),s[t]=u[0],c[t]=u[1],l[t]=u[2];let d=i*i>>1,f=w(s,t,r,i,i,(e,t)=>{let n=e[d],r=0;for(let n=0;n<t;n++)r+=e[n];let i=r/t,a=E(e,t),o=D(e,t),s=C(e,t);return s<i&&a-s>s-o?o:s>i&&a-s<s-o?a:n}),p=w(c,t,r,i,i,C),m=w(l,t,r,i,i,C),h=new Uint8ClampedArray(f.length*3);for(let e=0;e<f.length;e++)a(f[e],p[e],m[e],h,e*3);return h}function I(e,t,r,i,a,o){let s=x.find(e=>i*a*e*e<=3e6)??x[x.length-1],c=i*s,l=a*s,u=b(e,t,r,c,l,`bilinear`),d=c*l,f=new Uint8ClampedArray(d*3),p=new Float32Array(d),m=[0,0,0];for(let e=0;e<d;e++)f[e*3]=u[e*4],f[e*3+1]=u[e*4+1],f[e*3+2]=u[e*4+2],n(u[e*4],u[e*4+1],u[e*4+2],m),p[e]=m[0]/100;let h=Math.max(0,Math.min(4,Math.round(o.thickness))),g=F(P(h>0?j(f,p,c,l,h,s):f,f,c,l),c,l,s),_=new Uint8ClampedArray(i*a*4);for(let e=0;e<a;e++)for(let t=0;t<i;t++){let n=0;for(let r=0;r<s;r++)for(let i=0;i<s;i++)n+=u[((e*s+r)*c+t*s+i)*4+3];let r=(e*i+t)*4;_[r]=g[(e*i+t)*3],_[r+1]=g[(e*i+t)*3+1],_[r+2]=g[(e*i+t)*3+2],_[r+3]=n/(s*s)}return _}let L=32768,R=(e,t,n)=>e>>3<<10|t>>3<<5|n>>3,z=e=>e<0?0:e>255?255:e,B=/* @__PURE__ */ new Float64Array(3);function ee(e,t,n,r,i,a){return a.method===`pixeloe`?I(e,t,n,r,i,{thickness:a.thickness}):b(e,t,n,r,i,a.method)}function V(e,t){let n=new Uint8ClampedArray(e),{brightness:r,contrast:i,saturation:a}=t;if(r===0&&i===0&&a===0)return n;let o=i*1.6,s=259*(o+255)/(255*(259-o)),c=/* @__PURE__ */ new Uint8ClampedArray(256);for(let e=0;e<256;e++)c[e]=s*(e+r*1.27-128)+128;let l=1+a/100;for(let e=0;e<n.length;e+=4){let t=c[n[e]],r=c[n[e+1]],i=c[n[e+2]],a=.299*t+.587*r+.114*i;n[e]=a+(t-a)*l,n[e+1]=a+(r-a)*l,n[e+2]=a+(i-a)*l}return n}function H(e,t,n,r,i){let{lab:a}=e,o=i?i[0]:1,s=1/0,c=i?i.length:e.size;for(let e=0;e<c;e++){let c=i?i[e]:e+1,u=l(t,n,r,a[c*3],a[c*3+1],a[c*3+2]);u<s&&(s=u,o=c)}return o}function U(e,t,r=!0){let i=new Uint32Array(L),a=new Uint32Array(L),o=new Uint32Array(L),s=new Uint32Array(L);for(let t=0;t<e.length;t+=4){if(e[t+3]<128)continue;let n=R(e[t],e[t+1],e[t+2]);i[n]++,a[n]+=e[t],o[n]+=e[t+1],s[n]+=e[t+2]}let c=0;for(let e=0;e<L;e++)i[e]>0&&c++;let l=new Uint16Array(c);for(let e=0,t=0;e<L;e++)i[e]>0&&(l[t++]=e);let u=[10,5,0],d=(e,t)=>{let n=0,r=0,a=0;for(let n=0;n<3;n++){let i=31,o=0;for(let r=e;r<t;r++){let e=l[r]>>u[n]&31;e<i&&(i=e),e>o&&(o=e)}o-i>a&&(a=o-i,r=n)}for(let r=e;r<t;r++)n+=i[l[r]];return{from:e,to:t,axis:r,score:t-e>1?n*a:0}},f=c>0?[d(0,c)]:[];for(;f.length<t;){let e=-1;for(let t=0;t<f.length;t++)f[t].score>0&&(e<0||f[t].score>f[e].score)&&(e=t);if(e<0)break;let{from:t,to:n,axis:r}=f[e],a=u[r],o=l.subarray(t,n);o.sort((e,t)=>(e>>a&31)-(t>>a&31));let s=0;for(let e of o)s+=i[e];let c=0,p=0;for(;p<o.length-1&&c+i[o[p]]<=s/2;)c+=i[o[p++]];p===0&&(p=1),f[e]=d(t,t+p),f.push(d(t+p,n))}let p=f.length,m=new Float64Array(p*3),h=new Int16Array(L).fill(-1);f.forEach((e,t)=>{let r=0,c=0,u=0,d=0;for(let n=e.from;n<e.to;n++){let e=l[n];h[e]=t,r+=a[e],c+=o[e],u+=s[e],d+=i[e]}n(Math.round(r/d),Math.round(c/d),Math.round(u/d),m,t*3)});let g=new Float64Array(c*3);for(let e=0;e<c;e++){let t=l[e];n(Math.round(a[t]/i[t]),Math.round(o[t]/i[t]),Math.round(s[t]/i[t]),g,e*3)}let _=new Float64Array(p*4);for(let e=0;e<(r?8:0);e++){_.fill(0);for(let e=0;e<c;e++){let t=0,n=1/0;for(let r=0,i=0;r<p;r++,i+=3){let a=m[i]-g[e*3],o=m[i+1]-g[e*3+1],s=m[i+2]-g[e*3+2],c=a*a+o*o+s*s;c<n&&(n=c,t=r)}let r=i[l[e]];h[l[e]]=t,_[t*4]+=g[e*3]*r,_[t*4+1]+=g[e*3+1]*r,_[t*4+2]+=g[e*3+2]*r,_[t*4+3]+=r}for(let e=0;e<p;e++){let t=_[e*4+3];t!==0&&(m[e*3]=_[e*4]/t,m[e*3+1]=_[e*4+1]/t,m[e*3+2]=_[e*4+2]/t)}}let v=new Float64Array(p);for(let e=0;e<c;e++)v[h[l[e]]]+=i[l[e]];return{lab:m,groups:p,pixels:v}}function W(e,t,n){let r=Math.max(2,Math.min(120,Math.round(n))),i=/* @__PURE__ */ new Map;for(let n=r;;n=Math.ceil(n*1.6)){let a=U(e,n);i.clear();for(let e=0;e<a.groups;e++){let n=H(t,a.lab[e*3],a.lab[e*3+1],a.lab[e*3+2]);i.set(n,(i.get(n)??0)+a.pixels[e])}if(i.size>=r||a.groups<n||n>=r*4)break}return[...i.entries()].sort((e,t)=>t[1]-e[1]).slice(0,r).map(([e])=>e)}function G(e,t,r,i,a,o){let s=new Uint16Array(t*r);if(a.length===0)return s;let c=new Uint16Array(L),l=(e,t,r)=>{let o=R(e,t,r);return c[o]===0&&(n(e&248|4,t&248|4,r&248|4,B),c[o]=H(i,B[0],B[1],B[2],a)),c[o]};if(o.dither===`none`){for(let t=0,n=0;t<s.length;t++,n+=4)e[n+3]>=128&&(s[t]=l(e[n],e[n+1],e[n+2]));return s}let u=Math.max(0,Math.min(100,o.ditherAmount))/100,d=new Float32Array((t+2)*3),f=new Float32Array((t+2)*3);for(let n=0,a=0;n<r;n++){for(let n=0;n<t;n++,a++){let t=a*4,r=(n+1)*3;if(e[t+3]<128)continue;let o=z(Math.round(e[t]+d[r])),c=z(Math.round(e[t+1]+d[r+1])),p=z(Math.round(e[t+2]+d[r+2])),m=l(o,c,p);s[a]=m;for(let e=0;e<3;e++){let t=((e===0?o:e===1?c:p)-i.rgb[m*3+e])*u;d[r+3+e]+=t*7/16,f[r-3+e]+=t*3/16,f[r+e]+=t*5/16,f[r+3+e]+=t/16}}let n=d;d=f,f=n,f.fill(0)}return s}function K(e,t,n){let r=/* @__PURE__ */ new Map;for(let t of e)t!==0&&r.set(t,(r.get(t)??0)+1);let i=[...r.keys()].filter(e=>r.get(e)>=n);if(i.length===0||i.length===r.size)return!1;let a=/* @__PURE__ */ new Map;for(let e of r.keys())r.get(e)<n&&a.set(e,H(t,t.lab[e*3],t.lab[e*3+1],t.lab[e*3+2],i));for(let t=0;t<e.length;t++){let n=a.get(e[t]);n!==void 0&&(e[t]=n)}return!0}function q(e,t,n,r){let i=new Uint8Array(e.length),a=new Uint8Array(e.length),o=[],s=[],c=[],l=(n,r)=>{let i=n%t;i>0&&r(n-1),i<t-1&&r(n+1),n>=t&&r(n-t),n<e.length-t&&r(n+t)};for(let t=0;t<e.length;t++){if(a[t]||e[t]===0)continue;let n=e[t];c.length=0,c.push(t),a[t]=1;for(let t=0;t<c.length;t++)l(c[t],t=>{!a[t]&&e[t]===n&&(a[t]=1,c.push(t))});if(c.length>r)for(let e of c)i[e]=1;else{s.push(o.length);for(let e of c)o.push(e)}}s.push(o.length);let u=(e,t)=>(n[e*3]-n[t*3])**2+(n[e*3+1]-n[t*3+1])**2+(n[e*3+2]-n[t*3+2])**2,d=/* @__PURE__ */ new Map,f=(t,n)=>{let r=e[o[s[t]]];d.clear();for(let a=s[t];a<s[t+1];a++)l(o[a],t=>{let a=e[t];a!==0&&a!==r&&(!n||i[t])&&d.set(a,(d.get(a)??0)+1)});let a=0,c=0,f=1/0;for(let[e,t]of d){let i=u(r,e);(n?t>c||t===c&&i<f:i<f)&&(a=e,c=t,f=i)}return a},p=(t,n)=>{for(let r=s[t];r<s[t+1];r++)e[o[r]]=n,i[o[r]]=1},m=!1,h=[];for(let e=0;e<s.length-1;e++)h.push(e);for(;h.length>0;){let e=[],t=[];for(let n of h){let r=f(n,!0);r===0?t.push(n):e.push([n,r])}if(e.length===0)break;for(let[t,n]of e)p(t,n);m=!0,h=t}for(let t of h){if(i[o[s[t]]])continue;let n=f(t,!1);if(n!==0){for(let r=s[t];r<s[t+1];r++)l(o[r],t=>{e[t]===n&&(i[t]=1)});p(t,n),m=!0}}return m}function te(e,t,n,r,i){let a=new Uint16Array(e);for(let e=0;e<12;e++){let e=!1;if(i.confetti>0&&(e=q(a,t,r.lab,i.confetti)||e),i.minStitches>0&&(e=K(a,r,i.minStitches)||e),!e)break}return a}function J(e,t,n,r){let i=new Uint8ClampedArray(e),a=-1/(2*(8*r)**2),o=[];for(let e=-2;e<=2;e++)for(let t=-2;t<=2;t++)o.push(Math.exp(-(t*t+e*e)/4.5));for(let r=0;r<n;r++)for(let s=0;s<t;s++){let c=(r*t+s)*4;if(e[c+3]<128)continue;let l=0,u=0,d=0,f=0;for(let i=-2,p=0;i<=2;i++)for(let m=-2;m<=2;m++,p++){let h=s+m,g=r+i;if(h<0||g<0||h>=t||g>=n)continue;let _=(g*t+h)*4;if(e[_+3]<128)continue;let v=e[_]-e[c],y=e[_+1]-e[c+1],b=e[_+2]-e[c+2],x=o[p]*Math.exp((v*v+y*y+b*b)*a);l+=e[_]*x,u+=e[_+1]*x,d+=e[_+2]*x,f+=x}i[c]=l/f,i[c+1]=u/f,i[c+2]=d/f}return i}function ne(e,t,r,i){if(!i.enabled)return{pixels:e,palette:[]};let o=i.smooth>0?J(e,t,r,i.smooth):e,s=[...new Set(i.pinned)].filter(e=>!i.removed.includes(e)),c=Math.max(2,Math.min(64,Math.round(i.colors))),l=U(o,Math.max(1,c-s.length),i.method===`kmeans`),u=[],d=(e,t,r)=>{let i=u.find(t=>t.rgb===e);if(i){i.weight+=t,i.pinned||=r;return}let a=[0,0,0];n(e>>16,e>>8&255,e&255,a),u.push({rgb:e,lab:a,weight:t,pinned:r,removed:!1,to:-1})},f=[0,0,0];for(let e=0;e<l.groups;e++)a(l.lab[e*3],l.lab[e*3+1],l.lab[e*3+2],f),d(z(Math.round(f[0]))<<16|z(Math.round(f[1]))<<8|z(Math.round(f[2])),l.pixels[e],!1);for(let e of s)d(e,0,!0);let p=(e,t)=>Math.hypot(e.lab[0]-t.lab[0],e.lab[1]-t.lab[1],e.lab[2]-t.lab[2]);for(;i.tolerance>0;){let e=-1,t=-1,n=i.tolerance;for(let r=0;r<u.length;r++)if(!(u[r].to>=0))for(let i=r+1;i<u.length;i++){if(u[i].to>=0||u[r].pinned&&u[i].pinned)continue;let a=p(u[r],u[i]);if(a>=n)continue;n=a;let o=u[r].pinned||!u[i].pinned&&u[r].weight>=u[i].weight;e=o?i:r,t=o?r:i}if(e<0)break;u[e].to=t,u[t].weight+=u[e].weight}let m=e=>u.findIndex(t=>t.rgb===e&&t.to<0&&!t.removed);for(let[e,t]of i.merged){let n=m(e),r=m(t);n>=0&&r>=0&&n!==r&&(u[n].to=r)}for(let e of i.removed){let t=m(e);t>=0&&(u[t].removed=!0)}let h=e=>{for(;u[e].to>=0;)e=u[e].to;return e},g=[];for(let e=0;e<u.length;e++)u[h(e)].removed||g.push(e);if(g.length===0)return{pixels:o,palette:[]};let _=new Int16Array(L).fill(-1),v=new Uint16Array(t*r);for(let e=0,t=0;e<v.length;e++,t+=4){if(o[t+3]<128)continue;let r=R(o[t],o[t+1],o[t+2]);if(_[r]<0){n(o[t]&248|4,o[t+1]&248|4,o[t+2]&248|4,B);let e=g[0],i=1/0;for(let t of g){let{lab:n}=u[t],r=(n[0]-B[0])**2+(n[1]-B[1])**2+(n[2]-B[2])**2;r<i&&(i=r,e=t)}_[r]=h(e)}v[e]=_[r]+1}if(i.minRegion>0){let e=new Float64Array((u.length+1)*3);u.forEach((t,n)=>e.set(t.lab,(n+1)*3)),q(v,t,e,i.minRegion)}let y=new Uint8ClampedArray(e.length),b=new Uint32Array(u.length);for(let e=0,t=0;e<v.length;e++,t+=4){if(v[e]===0)continue;let{rgb:n}=u[v[e]-1];b[v[e]-1]++,y[t]=n>>16,y[t+1]=n>>8&255,y[t+2]=n&255,y[t+3]=255}let x=[];return u.forEach((e,t)=>{e.to<0&&!e.removed&&(b[t]>0||e.pinned)&&x.push({rgb:e.rgb,pixels:b[t],pinned:e.pinned})}),x.sort((e,t)=>t.pixels-e.pixels),{pixels:y,palette:x}}let Y=[];for(let e=2;e<=64;e+=e<16?1:e<32?2:4)Y.push(e);function re(e,t,r,i){let a=i.smooth>0?J(e,t,r,i.smooth):e,o=Math.max(1,Math.ceil(Math.sqrt(t*r/12e4))),s=a;if(o>1){let e=Math.ceil(t/o),n=Math.ceil(r/o);s=new Uint8ClampedArray(e*n*4);for(let r=0,i=0;r<n;r++)for(let n=0;n<e;n++,i+=4){let e=(r*o*t+n*o)*4;s[i]=a[e],s[i+1]=a[e+1],s[i+2]=a[e+2],s[i+3]=a[e+3]}}let c=new Uint32Array(L),l=new Float64Array(L*3),u=0;for(let e=0;e<s.length;e+=4){if(s[e+3]<128)continue;let t=R(s[e],s[e+1],s[e+2]);c[t]++,l[t*3]+=s[e],l[t*3+1]+=s[e+1],l[t*3+2]+=s[e+2],u++}let d=[],f=[];for(let e=0;e<L;e++)c[e]!==0&&(n(Math.round(l[e*3]/c[e]),Math.round(l[e*3+1]/c[e]),Math.round(l[e*3+2]/c[e]),B),d.push(B[0],B[1],B[2]),f.push(c[e]));let p=[],m=[];for(let e of Y){let{lab:t,groups:n}=U(s,e,i.method===`kmeans`),r=0,a=0;for(let e=0;e<f.length;e++){let i=1/0;for(let r=0,a=0;r<n;r++,a+=3){let n=(t[a]-d[e*3])**2+(t[a+1]-d[e*3+1])**2+(t[a+2]-d[e*3+2])**2;n<i&&(i=n)}let o=Math.sqrt(i);r+=o*f[e],o>2.3&&(a+=f[e])}p.push(u?r/u:0),m.push(u?a/u:0)}let h=p[p.length-1],g=h+.15*(p[0]-h),_=p.findIndex(e=>e<=2.3||e<=g);return _<0&&(_=p.length-1),{counts:[...Y],error:p,visible:m,suggested:Y[_]}}function ie(e,t){let n=/* @__PURE__ */ new Set,r=0,i=0;for(let a=0;a<e.length;a++){let o=e[a];if(o===0)continue;r++,n.add(o);let s=a%t;(s===0||e[a-1]!==o)&&(s===t-1||e[a+1]!==o)&&e[a-t]!==o&&e[a+t]!==o&&i++}return{stitches:r,colors:n.size,isolated:i}}function ae(e,t,n,r,i,a=`cleanup`){if(a===`size`)return{pixels:e};let o=V(e,i.adjust);if(a===`adjust`)return{pixels:o};let s=ne(o,t,n,i.simplify);if(a===`simplify`)return s;let c=W(s.pixels,r,i.colors.maxColors),l=G(s.pixels,t,n,r,c,i.colors);return a===`cleanup`&&(l=te(l,t,n,r,i.cleanup)),{cells:l,stats:ie(l,t)}}let X=null,Z=null,Q=null,$=null;self.onmessage=async e=>{let t=e.data;try{if(t.image&&(X?.close(),X=await createImageBitmap(t.image),Z=null,Q=null),!X)throw Error(`no image`);let{crop:e}=t,n=[e.x,e.y,e.width,e.height].join();if(!Z||Z.key!==n){let t=new OffscreenCanvas(e.width,e.height).getContext(`2d`,{willReadFrequently:!0});t.drawImage(X,e.x,e.y,e.width,e.height,0,0,e.width,e.height),Z={key:n,width:e.width,height:e.height,pixels:t.getImageData(0,0,e.width,e.height).data},Q=null}let r=[n,t.width,t.height,t.settings.size.method,t.settings.size.thickness].join();(!Q||Q.key!==r)&&(Q={key:r,pixels:ee(Z.pixels,Z.width,Z.height,t.width,t.height,t.settings.size)});let i=ae(Q.pixels,t.width,t.height,g(t.brand),t.settings,t.upTo),a={id:t.id,ok:!0,width:t.width,height:t.height};if(`cells`in i)self.postMessage({...a,...i},{transfer:[i.cells.buffer]});else{let e=i.pixels===Q.pixels?new Uint8ClampedArray(i.pixels):i.pixels;self.postMessage({...a,pixels:e,palette:i.palette},{transfer:[e.buffer]})}let{adjust:o,simplify:s}=t.settings;if(t.upTo===`simplify`&&s.enabled){let e=JSON.stringify([r,o,s.smooth,s.method]);$?.key!==e&&($={key:e,analysis:re(V(Q.pixels,o),t.width,t.height,s)}),self.postMessage({id:t.id,analysis:$.analysis})}}catch{self.postMessage({id:t.id,ok:!1})}}})();

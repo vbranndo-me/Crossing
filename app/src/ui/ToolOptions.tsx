@@ -11,6 +11,8 @@ export interface ToolSettings {
   brushSize: number;
   brushShape: BrushShape;
   fillMode: FillMode;
+  /** Rectangle and ellipse: filled in, or only the outline. */
+  shapeFilled: boolean;
 }
 
 interface Props {
@@ -30,7 +32,19 @@ export function ToolOptions({ tool, settings, onChange, gradient, onPickGradient
   // Keep focus off these buttons after a mouse click, so Space (hold to pan) is not swallowed.
   const noFocus = { onMouseDown: (e: { preventDefault(): void }) => e.preventDefault() };
 
-  if (tool === 'pencil' || tool === 'eraser') {
+  if (tool === 'rect' || tool === 'ellipse') {
+    return (
+      <div className="tool-options" role="group" aria-label={o.shape}>
+        {[false, true].map((filled) => (
+          <button key={String(filled)} type="button" className={`tool text${settings.shapeFilled === filled ? ' active' : ''}`} aria-pressed={settings.shapeFilled === filled} {...noFocus} onClick={() => onChange({ shapeFilled: filled })}>
+            {filled ? o.filled : o.outline}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  if (tool === 'pencil' || tool === 'eraser' || tool === 'line') {
     return (
       <div className="tool-options" role="group" aria-label={o.brush}>
         <label className="option-label" htmlFor="brush-size">

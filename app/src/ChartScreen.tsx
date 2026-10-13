@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Palette } from './core/palette.ts';
+import { ChartSizeDialog } from './dialogs/ChartSizeDialog.tsx';
 import { ColorPickerDialog } from './dialogs/ColorPickerDialog.tsx';
+import { ReplaceColorDialog } from './dialogs/ReplaceColorDialog.tsx';
+import { TextDialog } from './dialogs/TextDialog.tsx';
 import { ThreadsDialog } from './dialogs/ThreadsDialog.tsx';
+import { clipboard } from './edit/clipboard.ts';
 import { MAX_BRUSH, createEditor } from './edit/editor.ts';
 import { gradientRamp } from './edit/gradient.ts';
 import type { LayerId } from './edit/editor.ts';
@@ -11,7 +15,7 @@ import { ColorsPanel } from './panels/ColorsPanel.tsx';
 import { LayersPanel } from './panels/LayersPanel.tsx';
 import type { LayerState } from './panels/LayersPanel.tsx';
 import { PreviewPanel } from './panels/PreviewPanel.tsx';
-import { convertProject, saveProject } from './project.ts';
+import { convertProject, resizeProject, saveProject } from './project.ts';
 import type { Project } from './project.ts';
 import { createAutosaver } from './storage/autosave.ts';
 import type { SaveState } from './storage/autosave.ts';
@@ -78,14 +82,16 @@ interface Props {
 export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSample, onReplace }: Props) {
   const { t, locale, setLocale } = useI18n();
   /** Which colour the picker is choosing: the drawing colour or the end of the gradient. */
-  const [dialog, setDialog] = useState<'color' | 'gradientStart' | 'gradientEnd' | 'threads' | null>(null);
+  const [dialog, setDialog] = useState<'color' | 'gradientStart' | 'gradientEnd' | 'threads' | 'size' | 'replace' | null>(null);
+  /** Cell the text tool was clicked on: the text dialog is open for it. */
+  const [textAt, setTextAt] = useState<{ x: number; y: number } | null>(null);
   const [info, setInfo] = useState<ViewInfo>({ scale: 1, cell: null, rect: { x: 0, y: 0, width: 0, height: 0 } });
   const defaults = useMemo(() => defaultColors(project.brand), [project.brand]);
   /** Palette index of the drawing colour. */
   const [selected, setSelected] = useState(defaults.draw);
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
   const [stitch, setStitch] = useState<StitchId>('full');
-  const [settings, setSettings] = useState<ToolSettings>({ brushSize: 1, brushShape: 'round', fillMode: 'solid' });
+  const [settings, setSettings] = useState<ToolSettings>({ brushSize: 1, brushShape: 'round', fillMode: 'solid', shapeFilled: false });
   const changeSettings = useCallback((patch: Partial<ToolSettings>) => setSettings((now) => ({ ...now, ...patch })), []);
   /** Palette indices the gradient bucket runs between. */
   const [gradientStart, setGradientStart] = useState(defaults.gradient[0]);
@@ -138,12 +144,15 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
   // Bumped at most once per frame, however many cells a stroke changes.
   const [revision, bump] = useReducer((n: number) => n + 1, 0);
   /** Cells edited since the last revision, for views that update incrementally. */
-  const dirty = useRef<{ cells: number[]; all: boolean }>({ cells: [], all: false });
+  const dirty = useRef<{ cells: number[]; all: boolean; lines: boolean }>({ cells: [], all: false, lines: false });
   useEffect(() => {
     let pending = 0;
     const unsubscribe = editor.subscribe((change) => {
       if (change.cells === null) dirty.current.all = true;
       else dirty.current.cells.push(...change.cells);
+      // A half or quarter stitch changes how its cell looks in the preview too.
+      dirty.current.cells.push(...change.fractions);
+      if (change.backstitch) dirty.current.lines = true;
       pending ||= requestAnimationFrame(() => {
         pending = 0;
         bump();
@@ -162,7 +171,7 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
 
   // Runs after the panels' own effects, so they have seen the list before it is emptied.
   useEffect(() => {
-    dirty.current = { cells: [], all: false };
+    dirty.current = { cells: [], all: false, lines: false };
   }, [revision, editor]);
 
   useEffect(() => {
@@ -170,6 +179,46 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
     const timer = setTimeout(() => setNotice(''), 3000);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  // Edit menu: the clipboard holds full stitches, and is shared by every chart of the same brand.
+  const copy = useCallback(() => {
+    const clip = editor.copySelection();
+    if (!clip) return setNotice(t.editNotice.nothingSelected), false;
+    clipboard.clip = clip;
+    clipboard.brand = project.brand;
+    return true;
+  }, [editor, project.brand, t]);
+  const cut = useCallback(() => {
+    if (copy()) editor.eraseSelection();
+  }, [copy, editor]);
+  const paste = useCallback(() => {
+    if (!clipboard.clip) return setNotice(t.editNotice.clipboardEmpty);
+    if (clipboard.brand !== project.brand) return setNotice(t.editNotice.clipboardBrand);
+    const at = view.current?.anchorCell() ?? { x: 0, y: 0 };
+    editor.paste(clipboard.clip, at.x, at.y);
+    // What was pasted is selected: the move tool takes it where it should go.
+    setTool('move');
+  }, [editor, project.brand, t]);
+  /** Open this chart in another shape (size change, crop): saved first, then replaced. */
+  const replaceWith = (make: () => Project) => void saver.flush().then(() => onReplace(make()));
+  const cropToSelection = () => {
+    const mask = editor.selection;
+    if (!mask) return setNotice(t.editNotice.nothingSelected);
+    let x0 = grid.width;
+    let y0 = grid.height;
+    let x1 = 0;
+    let y1 = 0;
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === 0) continue;
+      const x = i % grid.width;
+      const y = (i - x) / grid.width;
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+    replaceWith(() => resizeProject(project, editor, x1 - x0 + 1, y1 - y0 + 1, -x0, -y0));
+  };
 
   // Keyboard: single keys pick a tool (as in the toolbar tooltips); the rest are the Edit menu's shortcuts.
   useEffect(() => {
@@ -184,6 +233,9 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
         else if (key === 'z' && !e.shiftKey) editor.undo();
         else if (key === 'y' || (key === 'z' && e.shiftKey)) editor.redo();
         else if (key === 'a') editor.selectAll();
+        else if (key === 'c') copy();
+        else if (key === 'x') cut();
+        else if (key === 'v') paste();
         else return;
       } else if (e.altKey) {
         return;
@@ -207,7 +259,7 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editor, saver]);
+  }, [editor, saver, copy, cut, paste]);
 
   useEffect(() => {
     document.title = `${project.name} · Crossing`;
@@ -226,7 +278,7 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
   const panelContent: Record<string, ReactNode> = {
     colors: <ColorsPanel palette={palette} counts={counts} extras={editor.extras} revision={revision} selected={selected} onSelect={setSelected} />,
     layers: <LayersPanel layers={layers} active={LAYER_OF[stitch]} onChange={changeLayer} onActivate={activateLayer} />,
-    preview: <PreviewPanel grid={grid} palette={palette} revision={revision} dirty={dirty} viewRect={info.rect} onNavigate={navigate} />,
+    preview: <PreviewPanel grid={grid} editor={editor} palette={palette} revision={revision} dirty={dirty} viewRect={info.rect} onNavigate={navigate} />,
   };
 
   // Items without onSelect are placeholders for features that do not exist yet.
@@ -256,13 +308,18 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
         { label: m.undo, shortcut: 'Ctrl+Z', onSelect: () => editor.undo() },
         { label: m.redo, shortcut: 'Ctrl+Y', onSelect: () => editor.redo() },
         'separator',
-        { label: m.cut, shortcut: 'Ctrl+X' },
-        { label: m.copy, shortcut: 'Ctrl+C' },
-        { label: m.paste, shortcut: 'Ctrl+V' },
+        { label: m.cut, shortcut: 'Ctrl+X', onSelect: cut },
+        { label: m.copy, shortcut: 'Ctrl+C', onSelect: () => void copy() },
+        { label: m.paste, shortcut: 'Ctrl+V', onSelect: paste },
         'separator',
         { label: m.selectAll, shortcut: 'Ctrl+A', onSelect: () => editor.selectAll() },
         { label: m.deselect, shortcut: 'Esc', onSelect: () => editor.deselect() },
         { label: m.eraseSelection, shortcut: 'Del', onSelect: () => editor.eraseSelection() },
+        'separator',
+        { label: m.flipH, onSelect: () => editor.transformSelection('flipH') },
+        { label: m.flipV, onSelect: () => editor.transformSelection('flipV') },
+        { label: m.rotateCW, onSelect: () => editor.transformSelection('rotateCW') },
+        { label: m.rotateCCW, onSelect: () => editor.transformSelection('rotateCCW') },
         'separator',
         { label: m.preferences },
       ],
@@ -282,7 +339,12 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
     },
     {
       label: m.chart,
-      items: [{ label: m.chartSize }, { label: m.replaceColor }, { label: m.threadPalette, onSelect: () => setDialog('threads') }],
+      items: [
+        { label: m.chartSize, onSelect: () => setDialog('size') },
+        { label: m.cropToSelection, onSelect: cropToSelection },
+        { label: m.replaceColor, onSelect: () => setDialog('replace') },
+        { label: m.threadPalette, onSelect: () => setDialog('threads') },
+      ],
     },
     {
       label: m.window,
@@ -340,6 +402,8 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
           brushSize={settings.brushSize}
           brushShape={settings.brushShape}
           fillMode={settings.fillMode}
+          shapeFilled={settings.shapeFilled}
+          onText={setTextAt}
           ramp={ramp}
           onView={setInfo}
           onBlocked={onBlocked}
@@ -394,7 +458,43 @@ export function ChartScreen({ project, palette, onNew, onImport, onLibrary, onSa
           onClose={() => setDialog(null)}
         />
       )}
-      {dialog && dialog !== 'threads' && (
+      {dialog === 'size' && (
+        <ChartSizeDialog
+          width={grid.width}
+          height={grid.height}
+          onResize={(width, height, dx, dy) => {
+            setDialog(null);
+            replaceWith(() => resizeProject(project, editor, width, height, dx, dy));
+          }}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'replace' && (
+        <ReplaceColorDialog
+          palette={palette}
+          used={palette.entries.filter((e) => e.id !== 0 && (counts[e.id] > 0 || editor.extras[e.id] > 0)).map((e) => e.id)}
+          initial={selected}
+          inSelection={editor.selection !== null}
+          onReplace={(from, to) => {
+            setDialog(null);
+            editor.replaceColor(from, to);
+          }}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {textAt && (
+        <TextDialog
+          onPlace={(text) => {
+            const values = new Uint16Array(text.on.length);
+            for (let i = 0; i < values.length; i++) if (text.on[i]) values[i] = selected;
+            editor.paste({ width: text.width, height: text.height, values }, textAt.x, textAt.y);
+            setTextAt(null);
+            setTool('move');
+          }}
+          onClose={() => setTextAt(null)}
+        />
+      )}
+      {(dialog === 'color' || dialog === 'gradientStart' || dialog === 'gradientEnd') && (
         <ColorPickerDialog
           palette={palette}
           selected={dialog === 'color' ? selected : dialog === 'gradientStart' ? gradientStart : gradientEnd}

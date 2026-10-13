@@ -93,6 +93,14 @@ input:focus-visible {
   cursor: grab;
 }
 
+.grid-view[data-tool='move'] {
+  cursor: move;
+}
+
+.grid-view[data-tool='text'] {
+  cursor: text;
+}
+
 .grid-view[data-tool='zoom'] {
   cursor: zoom-in;
 }
@@ -768,7 +776,8 @@ input:focus-visible {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   height: calc(var(--control-height) + 4px);
   padding: 0 calc(var(--space) * 2);
@@ -1105,12 +1114,14 @@ input:focus-visible {
 /* ---- Import image dialog ---- */
 
 .dialog.wide {
-  width: min(880px, calc(100vw - 4 * var(--space)));
+  width: min(1100px, calc(100vw - 4 * var(--space)));
 }
 
 .import {
+  /* Height of the picture's area; the settings beside it are as tall. */
+  --import-stage: min(525px, 60vh);
   display: grid;
-  grid-template-columns: 270px minmax(0, 1fr);
+  grid-template-columns: 330px minmax(0, 1fr);
   gap: calc(var(--space) * 4);
 }
 
@@ -1248,8 +1259,183 @@ input:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* The settings scroll on their own, so the preview and the buttons stay where they are. */
 .import-settings {
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--import-stage) + 64px);
+  padding-right: var(--space);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-surface-raised) var(--c-surface);
+}
+
+.import-settings > * {
+  flex: none;
+}
+
+.field textarea {
+  height: auto;
+  padding: var(--space) calc(var(--space) * 2);
+  resize: vertical;
+}
+
+.field input[type='checkbox'] {
+  width: auto;
+}
+
+/* Chart size: which side or corner stays where it is. */
+.anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 2px;
+}
+
+.anchor-grid .tool {
+  width: 24px;
+  height: 24px;
+}
+
+/* A select with the colour it names beside it. */
+.swatch-select {
+  display: grid;
+  grid-template-columns: var(--swatch) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+/* Text tool: the text as stitches. */
+.text-preview {
+  display: grid;
+  place-items: center;
+  height: 110px;
+  padding: var(--space);
+  background: var(--c-surface-sunken);
+  border: 1px solid var(--c-outline);
+  overflow: hidden;
+}
+
+.text-preview canvas {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  /* Small text is enlarged so its stitches can be told apart. */
+  min-height: 60%;
+  object-fit: contain;
+}
+
+/* Backstitch and knots, over the preview's stitches. */
+.preview-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Simplify step: what each number of colours costs. */
+.import-analysis {
+  display: grid;
+  gap: var(--space);
+  padding: calc(var(--space) * 2);
+  background: var(--c-surface-sunken);
+  border: 1px solid var(--c-outline);
+}
+
+.import-curve {
+  display: block;
+  width: 100%;
+}
+
+.import-curve polyline {
+  fill: none;
+  stroke: var(--c-text);
+  stroke-width: 1.5;
+}
+
+.import-curve .limit {
+  stroke: var(--c-text-muted);
+  stroke-dasharray: 3 3;
+}
+
+.import-curve .current {
+  stroke: var(--c-accent);
+}
+
+.import-curve .suggested {
+  fill: var(--c-accent);
+}
+
+/* Simplify step: the colours the image was reduced to, tickable. */
+.import-palette {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--c-surface-sunken);
+  border: 1px solid var(--c-outline);
+}
+
+.import-palette label {
+  display: grid;
+  grid-template-columns: auto var(--swatch) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  height: var(--control-height);
+  padding: 0 calc(var(--space) * 2);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.import-palette label:hover {
+  background: var(--c-hover);
+}
+
+.import-palette .pin {
+  color: var(--c-accent);
+}
+
+.import-palette-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  cursor: pointer;
+}
+
+.import-stage canvas.picking {
+  cursor: crosshair;
+}
+
+/* A group of secondary settings, closed until asked for. */
+.accordion {
+  border: 1px solid var(--c-outline);
+}
+
+.accordion summary {
+  padding: var(--space);
+  cursor: pointer;
+  user-select: none;
+}
+
+.accordion summary:hover {
+  background: var(--c-hover);
+}
+
+.accordion[open] {
+  display: grid;
+  gap: var(--space);
+  padding: 0 var(--space) var(--space);
+}
+
+.accordion[open] summary {
+  margin: 0 calc(-1 * var(--space));
+  border-bottom: 1px solid var(--c-outline);
 }
 
 .field input[type='range'] {
@@ -1290,8 +1476,10 @@ input:focus-visible {
 
 .import-stage {
   display: grid;
+  /* One cell of a definite size, so the picture's 100% height means the stage's height. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
-  height: min(420px, 50vh);
+  height: var(--import-stage);
   background: var(--c-surface-sunken);
   border: 1px solid var(--c-outline);
   overflow: hidden;

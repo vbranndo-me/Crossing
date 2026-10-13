@@ -1,8 +1,8 @@
 // Runs the conversion off the main thread, so the wizard stays responsive while settings change.
 import { paletteFor } from '../threads/brands.ts';
 import type { BrandId } from '../threads/brands.ts';
-import { runPipeline, sizeImage } from './pipeline.ts';
-import type { ChartStats, PipelineSettings, Stage } from './pipeline.ts';
+import { adjustPixels, analyzeColors, runPipeline, sizeImage } from './pipeline.ts';
+import type { ChartStats, ColorAnalysis, PipelineSettings, SimplifiedColor, Stage } from './pipeline.ts';
 
 export interface ConvertJob {
   id: number;
@@ -20,9 +20,11 @@ export interface ConvertJob {
 }
 
 export type ConvertReply =
-  | { id: number; ok: true; width: number; height: number; pixels: Uint8ClampedArray }
+  | { id: number; ok: true; width: number; height: number; pixels: Uint8ClampedArray; palette?: SimplifiedColor[] }
   | { id: number; ok: true; width: number; height: number; cells: Uint16Array; stats: ChartStats }
-  | { id: number; ok: false };
+  | { id: number; ok: false }
+  /** Sent after the reply to a job that ends on "simplify": what each number of colours would cost. */
+  | { id: number; analysis: ColorAnalysis };
 
 /** The image being converted, decoded once and reused while its settings change. */
 let bitmap: ImageBitmap | null = null;
@@ -30,6 +32,8 @@ let bitmap: ImageBitmap | null = null;
 let cropped: { key: string; width: number; height: number; pixels: Uint8ClampedArray } | null = null;
 /** The stage "size" output last asked for: most changes are to later stages and can start from here. */
 let sized: { key: string; pixels: Uint8ClampedArray } | null = null;
+/** The last colour analysis: it does not depend on most settings, so it is rarely worked out again. */
+let analysed: { key: string; analysis: ColorAnalysis } | null = null;
 
 self.onmessage = async (e: MessageEvent<ConvertJob>) => {
   const job = e.data;
@@ -62,7 +66,13 @@ self.onmessage = async (e: MessageEvent<ConvertJob>) => {
     } else {
       // The sized pixels are kept here for the next job, so a copy is what gets sent.
       const pixels = result.pixels === sized.pixels ? new Uint8ClampedArray(result.pixels) : result.pixels;
-      self.postMessage({ ...base, pixels } satisfies ConvertReply, { transfer: [pixels.buffer] });
+      self.postMessage({ ...base, pixels, palette: result.palette } satisfies ConvertReply, { transfer: [pixels.buffer] });
+    }
+    const { adjust, simplify } = job.settings;
+    if (job.upTo === 'simplify' && simplify.enabled) {
+      const key = JSON.stringify([sizeKey, adjust, simplify.smooth, simplify.method]);
+      if (analysed?.key !== key) analysed = { key, analysis: analyzeColors(adjustPixels(sized.pixels, adjust), job.width, job.height, simplify) };
+      self.postMessage({ id: job.id, analysis: analysed.analysis } satisfies ConvertReply);
     }
   } catch {
     self.postMessage({ id: job.id, ok: false } satisfies ConvertReply);

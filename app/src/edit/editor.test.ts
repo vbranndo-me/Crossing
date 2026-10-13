@@ -284,6 +284,171 @@ describe('editor', () => {
     expect(countsMatch()).toBe(true);
   });
 
+  it('copies the selection and pastes it elsewhere, selected, as one step', () => {
+    const { editor, at, countsMatch } = setup();
+    editor.paintLine(1, 1, 2, 1, 2);
+    editor.paintLine(1, 2, 1, 2, 3);
+    editor.endStroke();
+    editor.selectRect(1, 1, 2, 2, 'replace', null);
+    const clip = editor.copySelection()!;
+    expect([clip.width, clip.height, [...clip.values]]).toEqual([2, 2, [2, 2, 3, 0]]);
+    editor.paste(clip, 6, 4);
+    expect([at(6, 4), at(7, 4), at(6, 5), at(7, 5)]).toEqual([2, 2, 3, 0]);
+    // Only what was pasted is selected: the empty corner is not.
+    expect(editor.selection![4 * 10 + 6]).toBe(1);
+    expect(editor.selection![5 * 10 + 7]).toBe(0);
+    expect(countsMatch()).toBe(true);
+    editor.undo();
+    expect([at(6, 4), at(6, 5)]).toEqual([0, 0]);
+    // Pasting over the edge keeps what fits.
+    editor.paste(clip, 9, 7);
+    expect(at(9, 7)).toBe(2);
+    expect(countsMatch()).toBe(true);
+  });
+
+  it('moves the selected stitches as the pointer drags, and undoes the move as one step', () => {
+    const { editor, at, countsMatch } = setup();
+    editor.paintLine(1, 1, 2, 1, 2);
+    editor.paintLine(5, 1, 5, 1, 4);
+    editor.endStroke();
+    editor.selectRect(1, 1, 2, 1, 'replace', null);
+    editor.dragSelection(1, 0);
+    editor.dragSelection(4, 2); // each call is measured from where the drag began
+    expect([at(1, 1), at(2, 1), at(5, 3), at(6, 3)]).toEqual([0, 0, 2, 2]);
+    expect(at(5, 1)).toBe(4); // what the first position passed over is back
+    editor.endStroke();
+    expect(editor.selection![3 * 10 + 5]).toBe(1);
+    expect(countsMatch()).toBe(true);
+    editor.undo();
+    expect([at(1, 1), at(2, 1), at(5, 3)]).toEqual([2, 2, 0]);
+    editor.redo();
+    expect([at(1, 1), at(5, 3)]).toEqual([0, 2]);
+    // Moving partly off the chart loses what leaves it.
+    editor.dragSelection(4, 0);
+    editor.endStroke();
+    expect(at(9, 3)).toBe(2);
+    expect(editor.counts[2]).toBe(1);
+  });
+
+  it('flips and turns the selection inside its own rectangle', () => {
+    const { editor, at, countsMatch } = setup();
+    // An "L": (2,2) (2,3) (2,4) (3,4)
+    editor.paintLine(2, 2, 2, 4, 2);
+    editor.paintLine(3, 4, 3, 4, 3);
+    editor.endStroke();
+    editor.selectRect(2, 2, 3, 4, 'replace', null);
+    editor.transformSelection('flipH');
+    expect([at(3, 2), at(3, 3), at(3, 4), at(2, 4), at(2, 2)]).toEqual([2, 2, 2, 3, 0]);
+    editor.undo();
+    editor.transformSelection('flipV');
+    expect([at(2, 2), at(3, 2), at(2, 4), at(3, 4)]).toEqual([2, 3, 2, 0]);
+    editor.undo();
+    editor.transformSelection('rotateCW');
+    editor.transformSelection('rotateCCW');
+    expect([at(2, 2), at(2, 3), at(2, 4), at(3, 4), at(3, 2)]).toEqual([2, 2, 2, 3, 0]);
+    // Four quarter turns bring a square back to where it started.
+    editor.selectRect(1, 1, 4, 4, 'replace', null);
+    const before = [...editor.grid.cells];
+    for (let n = 0; n < 4; n++) editor.transformSelection('rotateCW');
+    expect([...editor.grid.cells]).toEqual(before);
+    expect(countsMatch()).toBe(true);
+  });
+
+  it('with nothing selected, a flip mirrors the whole chart', () => {
+    const { editor, at } = setup();
+    editor.paintLine(0, 0, 0, 0, 2);
+    editor.endStroke();
+    editor.transformSelection('flipH');
+    expect([at(0, 0), at(9, 0)]).toEqual([0, 2]);
+  });
+
+  it('draws rectangles and ellipses, outlined or filled', () => {
+    const { editor, at, countsMatch } = setup(12, 12);
+    editor.paintShape('rect', 1, 1, 4, 3, 2, false);
+    editor.endStroke();
+    expect(editor.counts[2]).toBe(10);
+    expect([at(1, 1), at(4, 3), at(2, 2)]).toEqual([2, 2, 0]);
+    editor.paintShape('rect', 4, 3, 1, 1, 3, true); // corners in any order
+    editor.endStroke();
+    expect(editor.counts[3]).toBe(12);
+    editor.paintShape('ellipse', 0, 5, 6, 11, 4, false);
+    editor.endStroke();
+    // A circle: its middle is hollow, its corners are cut, the middle of each side is on it.
+    expect([at(3, 8), at(0, 5), at(3, 5), at(0, 8), at(6, 8), at(3, 11)]).toEqual([0, 0, 4, 4, 4, 4]);
+    editor.paintShape('ellipse', 0, 5, 6, 11, 5, true);
+    editor.endStroke();
+    expect(at(3, 8)).toBe(5);
+    expect(at(0, 5)).toBe(0);
+    expect(countsMatch()).toBe(true);
+    editor.undo();
+    expect(at(3, 8)).toBe(0);
+  });
+
+  it('a shape dragged out is redrawn from its start each time', () => {
+    const { editor } = setup();
+    const mark = editor.mark();
+    editor.paintShape('rect', 1, 1, 6, 6, 2, true);
+    editor.rewind(mark);
+    editor.paintShape('rect', 1, 1, 2, 2, 2, true);
+    editor.endStroke();
+    expect(editor.counts[2]).toBe(4);
+    editor.undo();
+    expect(editor.counts[2]).toBe(0);
+  });
+
+  it('replaces a colour on every layer in one step', () => {
+    const { editor, at } = setup();
+    editor.paintLine(0, 0, 3, 0, 2);
+    editor.paintHalves(5, 5, 5, 5, true, 2);
+    editor.paintQuarters(4, 4, 4, 4, 2);
+    editor.endStroke();
+    editor.addBackstitch({ x0: 0, y0: 0, x1: 4, y1: 0, color: 2 });
+    editor.paintLine(0, 3, 0, 3, 4);
+    editor.endStroke();
+    editor.replaceColor(2, 5);
+    expect([at(0, 0), at(3, 0), at(0, 3)]).toEqual([5, 5, 4]);
+    expect(editor.halves![(5 * 10 + 5) * 2]).toBe(5);
+    expect(editor.backstitches[0].color).toBe(5);
+    expect([editor.counts[2], editor.extras[2], editor.counts[5], editor.extras[5]]).toEqual([0, 0, 4, 3]);
+    editor.undo();
+    expect([at(0, 0), editor.backstitches[0].color, editor.extras[2], editor.extras[5]]).toEqual([2, 2, 3, 0]);
+    // Inside a selection, only what is selected.
+    editor.selectRect(0, 0, 1, 0, 'replace', null);
+    editor.replaceColor(2, 5);
+    expect([at(0, 0), at(1, 0), at(2, 0)]).toEqual([5, 5, 2]);
+  });
+
+  it('a three-quarter stitch is the quarter in a corner plus the half across it', () => {
+    const { editor } = setup();
+    // Top-left corner of cell (2, 1): the quarter is on "\", so the half is "/".
+    editor.paintThreeQuarters(4, 2, 4, 2, 3);
+    editor.endStroke();
+    const i = 1 * 10 + 2;
+    expect([...editor.quarters!.slice(i * 4, i * 4 + 4)]).toEqual([3, 0, 0, 0]);
+    expect([...editor.halves!.slice(i * 2, i * 2 + 2)]).toEqual([3, 0]);
+    // Top-right corner: the half is "\".
+    editor.paintThreeQuarters(7, 2, 7, 2, 4);
+    editor.endStroke();
+    expect([...editor.halves!.slice((i + 1) * 2, (i + 1) * 2 + 2)]).toEqual([0, 4]);
+    editor.undo();
+    editor.undo();
+    expect(editor.extras[3]).toBe(0);
+  });
+
+  it('French knots sit on a point, are counted, picked and erased like backstitch', () => {
+    const { editor } = setup();
+    editor.addKnot(5, 5, 2);
+    editor.addKnot(5, 5, 2); // the same knot again adds nothing
+    expect(editor.backstitches.length).toBe(1);
+    expect(editor.extras[2]).toBe(1);
+    expect(editor.colorAt(2.5, 2.5, { full: true, fractional: true, backstitch: true })).toBe(2);
+    editor.eraseBackstitchNear(2.5, 2.5, 0.3);
+    editor.endStroke();
+    expect(editor.backstitches.length).toBe(0);
+    editor.undo();
+    expect(editor.backstitches.length).toBe(1);
+  });
+
   it('a gradient ramp starts and ends on the two colours and only uses palette threads', () => {
     const palette = makePalette(60);
     const ramp = gradientRamp(palette, 7, 31);

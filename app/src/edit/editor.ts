@@ -22,6 +22,16 @@ export const QUARTER = { topLeft: 0, topRight: 1, bottomLeft: 2, bottomRight: 3 
 /** Positions of the two half stitches inside a cell's slot in `halves`: "/" then "\". */
 export const HALF = { slash: 0, backslash: 1 };
 
+/** A rectangle of full stitches taken from a chart. 0 = nothing there (it does not overwrite when pasted). */
+export interface Clip {
+  width: number;
+  height: number;
+  values: Uint16Array;
+}
+
+export type Transform = 'flipH' | 'flipV' | 'rotateCW' | 'rotateCCW';
+export type Shape = 'rect' | 'ellipse';
+
 export type BrushShape = 'round' | 'square';
 export const MAX_BRUSH = 32;
 
@@ -96,11 +106,33 @@ export interface Editor {
   paintHalves(x0: number, y0: number, x1: number, y1: number, slash: boolean, value: number): void;
   /** Quarter stitches along a line. Coordinates are in half cells: each one names a corner of a cell. */
   paintQuarters(hx0: number, hy0: number, hx1: number, hy1: number, value: number): void;
+  /**
+   * Three-quarter stitches along a line of corners (half cells, as for quarters): the quarter in
+   * that corner plus the half stitch across the other diagonal. Value 0 erases both.
+   */
+  paintThreeQuarters(hx0: number, hy0: number, hx1: number, hy1: number, value: number): void;
+  /** Part of a stroke: a rectangle or an ellipse of full stitches between two cells (inclusive), outlined or filled. */
+  paintShape(shape: Shape, x0: number, y0: number, x1: number, y1: number, value: number, filled: boolean): void;
+  /**
+   * Part of a stroke: the selected full stitches moved by (dx, dy) cells from where they were when
+   * the stroke began, and the selection with them. What leaves the chart is lost.
+   */
+  dragSelection(dx: number, dy: number): void;
   /** Remove the backstitch lines passing within `radius` cells of a point (in cells). */
   eraseBackstitchNear(x: number, y: number, radius: number): void;
   /** The stroke (any of the four above) is finished: it becomes one undo step. */
   endStroke(): void;
   addBackstitch(line: Backstitch): void;
+  /** A French knot at a point (in half cells). It lives with the backstitch lines, as a line of no length. */
+  addKnot(x: number, y: number, color: number): void;
+  /** The selected full stitches, as the smallest rectangle that holds them. null with nothing selected. */
+  copySelection(): Clip | null;
+  /** Put a clip's stitches on the chart with its top-left corner at a cell, and select them. */
+  paste(clip: Clip, x: number, y: number): void;
+  /** Mirror or turn the selected full stitches (the whole chart with nothing selected) inside their own rectangle. */
+  transformSelection(kind: Transform): void;
+  /** Every stitch of one colour, on all layers, becomes another colour (inside the selection, if there is one). */
+  replaceColor(from: number, to: number): void;
   /** Bucket: recolour the connected area of equal full stitches around `index`. */
   fill(index: number, value: number): void;
   /**
@@ -228,6 +260,37 @@ export function createEditor(grid: Grid, paletteSize: number, initial?: InitialL
     return changed;
   };
 
+  /** Part of a stroke: set one cell's full stitch, whatever the selection says, and remember what it was. */
+  const put = (i: number, value: number, changed: number[]) => {
+    const previous = cells[i];
+    if (previous === value) return;
+    cells[i] = value;
+    counts[previous]--;
+    counts[value]++;
+    strokeCells.push(i);
+    strokePrev.push(previous);
+    changed.push(i);
+  };
+
+  /** The diff of the stroke in progress: each cell once, from what it was before the stroke to what it is now. */
+  const strokeDiff = (): Diff | null => {
+    const before = new Map<number, number>();
+    for (let k = 0; k < strokeCells.length; k++) if (!before.has(strokeCells[k])) before.set(strokeCells[k], strokePrev[k]);
+    const indices = [...before.keys()].filter((i) => before.get(i) !== cells[i]).sort((a, b) => a - b);
+    if (indices.length === 0) return null;
+    const runs: number[] = [];
+    const prev = new Uint16Array(indices.length);
+    const next = new Uint16Array(indices.length);
+    indices.forEach((i, at) => {
+      prev[at] = before.get(i)!;
+      next[at] = cells[i];
+      if (runs.length > 0 && runs[runs.length - 2] + runs[runs.length - 1] === i) runs[runs.length - 1]++;
+      else runs.push(i, 1);
+    });
+    const one = (values: Uint16Array) => (values.every((v) => v === values[0]) ? values[0] : values);
+    return { runs: Uint32Array.from(runs), count: indices.length, prev: one(prev), next: one(next) };
+  };
+
   /** Record a change to full stitches that has already been applied. */
   const pushDiff = (diff: Diff) => {
     const size = (v: Uint16Array | number) => (typeof v === 'number' ? 0 : v.byteLength);
@@ -324,6 +387,139 @@ export function createEditor(grid: Grid, paletteSize: number, initial?: InitialL
     emit({ selection: true });
   };
 
+  /** The selection being moved by the stroke in progress: where it started and what it held. */
+  let lift: { indices: number[]; values: number[]; mark: StrokeMark } | null = null;
+
+  /** Smallest rectangle around the selected cells (around the whole chart with nothing selected). */
+  const bounds = (mask: Uint8Array | null) => {
+    if (mask === null) return { x: 0, y: 0, w: width, h: height };
+    let x0 = width;
+    let y0 = height;
+    let x1 = -1;
+    let y1 = -1;
+    for (let i = 0; i < total; i++) {
+      if (mask[i] === 0) continue;
+      const x = i % width;
+      const y = (i - x) / width;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+    return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  };
+
+  const rewindTo = (mark: StrokeMark) => {
+    const changed: number[] = [];
+    while (strokeCells.length > mark.cells) {
+      const i = strokeCells.pop()!;
+      const previous = strokePrev.pop()!;
+      counts[cells[i]]--;
+      counts[previous]++;
+      cells[i] = previous;
+      changed.push(i);
+    }
+    const fractions = new Set<number>();
+    while (strokeSlots.length > mark.slots) {
+      const s = strokeSlots.pop()!;
+      setSlot(s.quarter, s.slot, s.prev);
+      fractions.add(Math.floor(s.slot / (s.quarter ? 4 : 2)));
+    }
+    if (changed.length > 0 || fractions.size > 0) emit({ cells: changed.length > LIST_LIMIT ? null : changed, fractions: [...fractions] });
+  };
+
+  /** The stroke in progress becomes undo steps (one per layer it touched). */
+  const commit = () => {
+    lift = null;
+    const diff = strokeDiff();
+    if (diff) pushDiff(diff);
+    strokeCells = [];
+    strokePrev = [];
+
+    if (strokeSlots.length > 0) {
+      const slots = strokeSlots;
+      const apply = (which: 'prev' | 'next') => {
+        const changed = new Set<number>();
+        for (const s of slots) if (setSlot(s.quarter, s.slot, s[which])) changed.add(Math.floor(s.slot / (s.quarter ? 4 : 2)));
+        emit({ fractions: [...changed] });
+      };
+      history.push({ bytes: slots.length * 32, undo: () => apply('prev'), redo: () => apply('next') });
+      strokeSlots = [];
+    }
+
+    if (strokeRemoved.length > 0) {
+      const removed = strokeRemoved;
+      history.push({
+        bytes: removed.length * 64,
+        // Put the lines back in reverse order, so each one lands where it was.
+        undo: () => {
+          for (let k = removed.length - 1; k >= 0; k--) {
+            backstitches.splice(removed[k].at, 0, removed[k].line);
+            extras[removed[k].line.color]++;
+          }
+          emit({ backstitch: true });
+        },
+        redo: () => {
+          for (const r of removed) {
+            backstitches.splice(r.at, 1);
+            extras[r.line.color]--;
+          }
+          emit({ backstitch: true });
+        },
+      });
+      strokeRemoved = [];
+    }
+  };
+
+  /**
+   * Move the stitches of `indices` (with their `values`) to where `to` sends each one (a cell
+   * index, or -1 for "off the chart"), as part of the stroke; the selection becomes the cells they land on.
+   */
+  const relocate = (indices: number[], values: number[], to: (i: number) => number) => {
+    const changed: number[] = [];
+    const moved = new Uint8Array(total);
+    for (let k = 0; k < indices.length; k++) if (values[k] !== 0) put(indices[k], 0, changed);
+    for (let k = 0; k < indices.length; k++) {
+      const j = to(indices[k]);
+      if (j < 0) continue;
+      moved[j] = 1;
+      // Empty cells travel with the selection but do not erase what they land on.
+      if (values[k] !== 0) put(j, values[k], changed);
+    }
+    selection = moved.includes(1) ? moved : null;
+    emit({ cells: changed.length > LIST_LIMIT ? null : changed, selection: true });
+  };
+
+  /** The selected cells (all of them with no selection) and their full stitches. */
+  const selected = () => {
+    const indices: number[] = [];
+    const values: number[] = [];
+    for (let i = 0; i < total; i++) {
+      if (selection !== null && selection[i] === 0) continue;
+      indices.push(i);
+      values.push(cells[i]);
+    }
+    return { indices, values };
+  };
+
+  const addLine = (added: Backstitch) => {
+    const add = () => {
+      backstitches.push(added);
+      extras[added.color]++;
+      emit({ backstitch: true });
+    };
+    add();
+    history.push({
+      bytes: 64,
+      undo: () => {
+        backstitches.splice(backstitches.lastIndexOf(added), 1);
+        extras[added.color]--;
+        emit({ backstitch: true });
+      },
+      redo: add,
+    });
+  };
+
   /** A copy of `base` (or an empty mask) to add to or subtract from. */
   const maskFor = (mode: SelectMode, base: Uint8Array | null) => (mode === 'replace' || base === null ? new Uint8Array(total) : base.slice());
 
@@ -354,24 +550,7 @@ export function createEditor(grid: Grid, paletteSize: number, initial?: InitialL
 
     mark: () => ({ cells: strokeCells.length, slots: strokeSlots.length }),
 
-    rewind(mark) {
-      const changed: number[] = [];
-      while (strokeCells.length > mark.cells) {
-        const i = strokeCells.pop()!;
-        const previous = strokePrev.pop()!;
-        counts[cells[i]]--;
-        counts[previous]++;
-        cells[i] = previous;
-        changed.push(i);
-      }
-      const fractions = new Set<number>();
-      while (strokeSlots.length > mark.slots) {
-        const s = strokeSlots.pop()!;
-        setSlot(s.quarter, s.slot, s.prev);
-        fractions.add(Math.floor(s.slot / (s.quarter ? 4 : 2)));
-      }
-      if (changed.length > 0 || fractions.size > 0) emit({ cells: changed.length > LIST_LIMIT ? null : changed, fractions: [...fractions] });
-    },
+    rewind: rewindTo,
 
     setLocked(layer, value) {
       locked[layer] = value;
@@ -450,62 +629,171 @@ export function createEditor(grid: Grid, paletteSize: number, initial?: InitialL
       if (removed) emit({ backstitch: true });
     },
 
-    endStroke() {
-      if (strokeCells.length > 0) pushDiff(diffOf(strokeCells, strokePrev, strokeValue));
-      strokeCells = [];
-      strokePrev = [];
-
-      if (strokeSlots.length > 0) {
-        const slots = strokeSlots;
-        const apply = (which: 'prev' | 'next') => {
-          const changed = new Set<number>();
-          for (const s of slots) if (setSlot(s.quarter, s.slot, s[which])) changed.add(Math.floor(s.slot / (s.quarter ? 4 : 2)));
-          emit({ fractions: [...changed] });
-        };
-        history.push({ bytes: slots.length * 32, undo: () => apply('prev'), redo: () => apply('next') });
-        strokeSlots = [];
-      }
-
-      if (strokeRemoved.length > 0) {
-        const removed = strokeRemoved;
-        history.push({
-          bytes: removed.length * 64,
-          // Put the lines back in reverse order, so each one lands where it was.
-          undo: () => {
-            for (let k = removed.length - 1; k >= 0; k--) {
-              backstitches.splice(removed[k].at, 0, removed[k].line);
-              extras[removed[k].line.color]++;
-            }
-            emit({ backstitch: true });
-          },
-          redo: () => {
-            for (const r of removed) {
-              backstitches.splice(r.at, 1);
-              extras[r.line.color]--;
-            }
-            emit({ backstitch: true });
-          },
-        });
-        strokeRemoved = [];
-      }
-    },
+    endStroke: commit,
 
     addBackstitch(added) {
       if (locked.backstitch || (added.x0 === added.x1 && added.y0 === added.y1)) return;
-      const add = () => {
-        backstitches.push(added);
-        extras[added.color]++;
-        emit({ backstitch: true });
+      addLine(added);
+    },
+
+    addKnot(x, y, color) {
+      if (locked.backstitch || x < 0 || y < 0 || x > width * 2 || y > height * 2) return;
+      // One knot per point: a second one there would only hide the first.
+      if (backstitches.some((l) => l.x0 === x && l.y0 === y && l.x1 === x && l.y1 === y && l.color === color)) return;
+      addLine({ x0: x, y0: y, x1: x, y1: y, color });
+    },
+
+    paintThreeQuarters(hx0, hy0, hx1, hy1, value) {
+      if (locked.fractional) return;
+      const changed = new Set<number>();
+      line(hx0, hy0, hx1, hy1, (hx, hy) => {
+        const x = hx >> 1;
+        const y = hy >> 1;
+        if (hx < 0 || hy < 0 || x >= width || y >= height) return;
+        const i = y * width + x;
+        if (!editable(i)) return;
+        const corner = (hx & 1) + (hy & 1) * 2;
+        strokeSlot(true, i * 4 + corner, value, changed);
+        // The quarter runs along one diagonal; the half that completes it is the other one.
+        const onBackslash = corner === QUARTER.topLeft || corner === QUARTER.bottomRight;
+        strokeSlot(false, i * 2 + (onBackslash ? HALF.slash : HALF.backslash), value, changed);
+      });
+      if (changed.size > 0) emit({ fractions: [...changed] });
+    },
+
+    paintShape(shape, x0, y0, x1, y1, value, filled) {
+      if (locked.full) return;
+      const left = Math.min(x0, x1);
+      const top = Math.min(y0, y1);
+      const w = Math.abs(x1 - x0) + 1;
+      const h = Math.abs(y1 - y0) + 1;
+      // Whether a cell of the bounding box belongs to the shape.
+      const inside = (u: number, v: number) => {
+        if (u < 0 || v < 0 || u >= w || v >= h) return false;
+        if (shape === 'rect') return true;
+        const dx = (u + 0.5 - w / 2) / (w / 2);
+        const dy = (v + 0.5 - h / 2) / (h / 2);
+        return dx * dx + dy * dy <= 1;
       };
-      add();
-      history.push({
-        bytes: 64,
-        undo: () => {
-          backstitches.splice(backstitches.lastIndexOf(added), 1);
-          extras[added.color]--;
-          emit({ backstitch: true });
-        },
-        redo: add,
+      const changed: number[] = [];
+      for (let v = 0; v < h; v++) {
+        for (let u = 0; u < w; u++) {
+          if (!inside(u, v)) continue;
+          // The outline: cells of the shape with a neighbour that is not.
+          if (!filled && inside(u - 1, v) && inside(u + 1, v) && inside(u, v - 1) && inside(u, v + 1)) continue;
+          const x = left + u;
+          const y = top + v;
+          if (x < 0 || y < 0 || x >= width || y >= height) continue;
+          const i = y * width + x;
+          if (editable(i)) put(i, value, changed);
+        }
+      }
+      strokeValue = value;
+      if (changed.length > 0) emit({ cells: changed.length > LIST_LIMIT ? null : changed });
+    },
+
+    dragSelection(dx, dy) {
+      if (locked.full) return;
+      if (!lift) {
+        if (selection === null) return;
+        lift = { ...selected(), mark: { cells: strokeCells.length, slots: strokeSlots.length } };
+      }
+      rewindTo(lift.mark);
+      relocate(lift.indices, lift.values, (i) => {
+        const x = (i % width) + dx;
+        const y = Math.floor(i / width) + dy;
+        return x < 0 || y < 0 || x >= width || y >= height ? -1 : y * width + x;
+      });
+    },
+
+    copySelection() {
+      if (selection === null) return null;
+      const box = bounds(selection);
+      const values = new Uint16Array(box.w * box.h);
+      for (let v = 0; v < box.h; v++) {
+        for (let u = 0; u < box.w; u++) {
+          const i = (box.y + v) * width + box.x + u;
+          if (selection[i] === 1) values[v * box.w + u] = cells[i];
+        }
+      }
+      return { width: box.w, height: box.h, values };
+    },
+
+    paste(clip, x, y) {
+      if (locked.full) return;
+      const changed: number[] = [];
+      const mask = new Uint8Array(total);
+      for (let v = 0; v < clip.height; v++) {
+        for (let u = 0; u < clip.width; u++) {
+          const value = clip.values[v * clip.width + u];
+          const px = x + u;
+          const py = y + v;
+          if (value === 0 || px < 0 || py < 0 || px >= width || py >= height) continue;
+          mask[py * width + px] = 1;
+          put(py * width + px, value, changed);
+        }
+      }
+      selection = mask.includes(1) ? mask : null;
+      emit({ cells: changed.length > LIST_LIMIT ? null : changed, selection: true });
+      commit();
+    },
+
+    transformSelection(kind) {
+      if (locked.full) return;
+      const box = bounds(selection);
+      if (box.w <= 0) return;
+      const turns = kind === 'rotateCW' || kind === 'rotateCCW';
+      // A turned rectangle swaps its sides; it stays centred where it was.
+      const left = turns ? box.x + Math.trunc((box.w - box.h) / 2) : box.x;
+      const top = turns ? box.y + Math.trunc((box.h - box.w) / 2) : box.y;
+      const { indices, values } = selected();
+      relocate(indices, values, (i) => {
+        const u = (i % width) - box.x;
+        const v = Math.floor(i / width) - box.y;
+        const [nu, nv] = kind === 'flipH' ? [box.w - 1 - u, v] : kind === 'flipV' ? [u, box.h - 1 - v] : kind === 'rotateCW' ? [box.h - 1 - v, u] : [v, box.w - 1 - u];
+        const x = left + nu;
+        const y = top + nv;
+        return x < 0 || y < 0 || x >= width || y >= height ? -1 : y * width + x;
+      });
+      commit();
+    },
+
+    replaceColor(from, to) {
+      if (from === to || from === 0 || to === 0) return;
+      history.group(() => {
+        if (!locked.full) {
+          const changed: number[] = [];
+          for (let i = 0; i < total; i++) if (cells[i] === from && editable(i)) put(i, to, changed);
+          if (changed.length > 0) emit({ cells: changed.length > LIST_LIMIT ? null : changed });
+        }
+        if (!locked.fractional) {
+          const changed = new Set<number>();
+          for (const quarter of [true, false]) {
+            const array = quarter ? quarters : halves;
+            const per = quarter ? 4 : 2;
+            for (let slot = 0; array && slot < array.length; slot++) {
+              if (array[slot] === from && editable(Math.floor(slot / per))) strokeSlot(quarter, slot, to, changed);
+            }
+          }
+          if (changed.size > 0) emit({ fractions: [...changed] });
+        }
+        commit();
+        // Backstitch lines and knots are recoloured whole, when the cell they start in is selected.
+        const lines = locked.backstitch
+          ? []
+          : backstitches.filter((l) => l.color === from && editable(Math.min(height - 1, l.y0 >> 1) * width + Math.min(width - 1, l.x0 >> 1)));
+        if (lines.length > 0) {
+          const paint = (color: number) => {
+            for (const l of lines) {
+              extras[l.color]--;
+              l.color = color;
+              extras[color]++;
+            }
+            emit({ backstitch: true });
+          };
+          paint(to);
+          history.push({ bytes: lines.length * 8, undo: () => paint(from), redo: () => paint(to) });
+        }
       });
     },
 

@@ -138,6 +138,9 @@ void main() {
 }`;
 
 const LINE_FLOATS = 9;
+/** French knots: half the length of the dash, in cells, and how many times fatter than a line it is. */
+const KNOT_REACH = 0.1;
+const KNOT_FAT = 2.2;
 const CORNERS = [0, -1, 1, -1, 0, 1, 0, 1, 1, -1, 1, 1];
 
 export interface GridRenderer {
@@ -349,7 +352,10 @@ export function createGridRenderer(
       all.forEach((l, k) => {
         for (let v = 0; v < 6; v++) {
           const o = (k * 6 + v) * LINE_FLOATS;
-          data.set([l.x0 / 2, l.y0 / 2, l.x1 / 2, l.y1 / 2, CORNERS[v * 2], CORNERS[v * 2 + 1]], o);
+          // A line of no length is a French knot: drawn as a short, fat dash, which reads as a dot.
+          const knot = l.x0 === l.x1 && l.y0 === l.y1;
+          const reach = knot ? KNOT_REACH : 0;
+          data.set([l.x0 / 2 - reach, l.y0 / 2, l.x1 / 2 + reach, l.y1 / 2, CORNERS[v * 2], CORNERS[v * 2 + 1] * (knot ? KNOT_FAT : 1)], o);
           data.set([palette.rgb[l.color * 3] / 255, palette.rgb[l.color * 3 + 1] / 255, palette.rgb[l.color * 3 + 2] / 255], o + 6);
         }
       });

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DragEvent, ReactNode } from 'react';
+import type { DragEvent, MouseEvent, ReactNode } from 'react';
 import { createConverter } from '../convert/converter.ts';
 import type { Converter, StageOutput } from '../convert/converter.ts';
-import { DEFAULT_SETTINGS, MAX_COLORS, MAX_CONFETTI, MAX_MIN_STITCHES, MIN_COLORS, SIZE_METHODS } from '../convert/pipeline.ts';
-import type { PipelineSettings, SizeMethod, Stage } from '../convert/pipeline.ts';
+import { DEFAULT_SETTINGS, MAX_COLORS, MAX_CONFETTI, MAX_MIN_STITCHES, MAX_REGION, MAX_SIMPLE_COLORS, MAX_SMOOTH, MAX_TOLERANCE, MIN_COLORS, SIMPLIFY_METHODS, SIZE_METHODS, VISIBLE_DELTA } from '../convert/pipeline.ts';
+import type { ColorAnalysis, PipelineSettings, SimplifyMethod, SizeMethod, Stage } from '../convert/pipeline.ts';
 import { MAX_THICKNESS } from '../convert/pixeloe.ts';
 import { cropFor } from '../convert/resample.ts';
 import { useI18n } from '../i18n/index.tsx';
@@ -42,8 +42,8 @@ interface Source {
 const STEPS = [
   { id: 'image', shows: null, from: null },
   { id: 'size', shows: 'size', from: null },
-  { id: 'adjust', shows: 'adjust', from: 'size' },
-  { id: 'colors', shows: 'colors', from: 'adjust' },
+  { id: 'adjust', shows: 'simplify', from: 'size' },
+  { id: 'colors', shows: 'colors', from: 'simplify' },
   { id: 'cleanup', shows: 'cleanup', from: 'colors' },
   { id: 'review', shows: 'cleanup', from: null },
 ] as const satisfies readonly { id: string; shows: Stage | null; from: Stage | null }[];
@@ -60,6 +60,32 @@ function Slider(props: { label: string; value: number; min: number; max: number;
       <span>{props.label}</span>
       <input type="range" min={props.min} max={props.max} value={props.value} onChange={(e) => props.onChange(Number(e.target.value))} />
     </label>
+  );
+}
+
+/** Value of a curve at `n`, between the points it was measured at. */
+function curveAt(counts: number[], values: number[], n: number): number {
+  const next = counts.findIndex((c) => c >= n);
+  if (next <= 0) return values[next < 0 ? values.length - 1 : 0];
+  const share = (n - counts[next - 1]) / (counts[next] - counts[next - 1]);
+  return values[next - 1] + (values[next] - values[next - 1]) * share;
+}
+
+/** How the difference to the image falls as colours are added, with the current and the suggested number marked. */
+function ColorCurve({ analysis, current, label }: { analysis: ColorAnalysis; current: number; label: string }) {
+  const W = 240;
+  const H = 64;
+  const { counts, error, suggested } = analysis;
+  const top = Math.max(error[0], VISIBLE_DELTA * 1.2, 0.001);
+  const x = (n: number) => ((n - counts[0]) / (counts[counts.length - 1] - counts[0])) * (W - 4) + 2;
+  const y = (e: number) => H - 3 - (e / top) * (H - 8);
+  return (
+    <svg className="import-curve" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
+      <line className="limit" x1={0} x2={W} y1={y(VISIBLE_DELTA)} y2={y(VISIBLE_DELTA)} />
+      <polyline points={counts.map((n, i) => `${x(n).toFixed(1)},${y(error[i]).toFixed(1)}`).join(' ')} />
+      <circle className="suggested" cx={x(suggested)} cy={y(curveAt(counts, error, suggested))} r={3} />
+      <line className="current" x1={x(current)} x2={x(current)} y1={0} y2={H} />
+    </svg>
   );
 }
 
@@ -85,6 +111,11 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
   const [produced, setProduced] = useState<{ output: StageOutput; key: string } | null>(null);
   const [state, setState] = useState<'idle' | 'working' | 'error'>('idle');
   const [dragging, setDragging] = useState(false);
+  /** Colours ticked in the simplified palette, as 0xRRGGBB. */
+  const [picked, setPicked] = useState<number[]>([]);
+  /** Dim everything but the ticked colours in the preview, to see where they are. */
+  const [highlight, setHighlight] = useState(true);
+  const [analysis, setAnalysis] = useState<ColorAnalysis | null>(null);
   const converter = useRef<Converter | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -139,6 +170,8 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
       setSource(next);
       setReadError(false);
       setProduced(null);
+      setAnalysis(null);
+      setPicked([]);
       setName(file.name.replace(/\.[^.]+$/, '').slice(0, 80));
       // Start at 100 stitches on the longer side.
       const scale = DEFAULT_WIDTH / Math.max(next.width, next.height);
@@ -165,13 +198,16 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
       converter.current?.request({ image: source.file, crop, width, height, brand, settings, upTo: stage }, (done) => {
         setProduced(done && { output: done, key: requestKey });
         setState(done ? 'idle' : 'error');
-      });
+      }, setAnalysis);
     }, SETTLE_MS);
     return () => clearTimeout(timer);
     // requestKey stands for all of the request's inputs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
   const output = produced?.output ?? null;
+
+  /** The colours to highlight: the ticked ones, while the simplified image is what is showing. */
+  const lit = highlight && current.id === 'adjust' && view === 'after' && output && 'pixels' in output && output.palette ? picked.filter((rgb) => output.palette!.some((c) => c.rgb === rgb)) : [];
 
   // Paint what the stage produced, one pixel per stitch; CSS enlarges it.
   const showsCanvas = source !== null && stage !== null;
@@ -183,6 +219,14 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
     const image = new ImageData(output.width, output.height);
     if ('pixels' in output) {
       image.data.set(output.pixels);
+      // Highlight: every colour that is not ticked fades to a dark grey.
+      const keep = new Set(lit);
+      const { data } = image;
+      for (let p = 0; keep.size > 0 && p < data.length; p += 4) {
+        if (keep.has((data[p] << 16) | (data[p + 1] << 8) | data[p + 2])) continue;
+        const grey = 24 + (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]) * 0.18;
+        data[p] = data[p + 1] = data[p + 2] = grey;
+      }
     } else {
       const pixels = new Uint32Array(image.data.buffer);
       const { rgb } = paletteFor(brand);
@@ -195,7 +239,44 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
     // `brand` is not a dependency: a new brand triggers a new conversion, and painting the old
     // indices with the new palette in between would flash wrong colours.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [output, showsCanvas]);
+  }, [output, showsCanvas, lit.join()]);
+
+  // The simplified image's colours, with what can be done to the ticked ones.
+  const simple = settings.simplify;
+  const simplePalette = output && 'pixels' in output ? (output.palette ?? []) : [];
+  const ticked = picked.filter((rgb) => simplePalette.some((c) => c.rgb === rgb));
+  const edits = simple.pinned.length + simple.removed.length + simple.merged.length;
+  const hex = (rgb: number) => `#${rgb.toString(16).padStart(6, '0')}`;
+  const pinTicked = () => {
+    const all = ticked.every((rgb) => simple.pinned.includes(rgb));
+    change('simplify', { pinned: all ? simple.pinned.filter((rgb) => !ticked.includes(rgb)) : [...new Set([...simple.pinned, ...ticked])] });
+  };
+  const removeTicked = () => {
+    change('simplify', { removed: [...simple.removed, ...ticked], pinned: simple.pinned.filter((rgb) => !ticked.includes(rgb)) });
+    setPicked([]);
+  };
+  /** The ticked colours become one: the one with the most pixels. */
+  const mergeTicked = () => {
+    const into = simplePalette.find((c) => ticked.includes(c.rgb))!.rgb;
+    change('simplify', { merged: [...simple.merged, ...ticked.filter((rgb) => rgb !== into).map((rgb): [number, number] => [rgb, into])] });
+    setPicked([into]);
+  };
+  /** On the image before simplifying, a click pins the colour under the pointer. */
+  const picksColor = current.id === 'adjust' && view === 'before' && simple.enabled;
+  const pickColor = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (!picksColor || !output || !('pixels' in output)) return;
+    // The image is shown as large as fits, centred in the canvas element.
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = Math.min(box.width / output.width, box.height / output.height);
+    const x = Math.floor((e.clientX - box.left - (box.width - output.width * scale) / 2) / scale);
+    const y = Math.floor((e.clientY - box.top - (box.height - output.height * scale) / 2) / scale);
+    if (x < 0 || y < 0 || x >= output.width || y >= output.height) return;
+    const p = (y * output.width + x) * 4;
+    if (output.pixels[p + 3] < 128) return;
+    const rgb = (output.pixels[p] << 16) | (output.pixels[p + 1] << 8) | output.pixels[p + 2];
+    change('simplify', { pinned: [...new Set([...simple.pinned, rgb])], removed: simple.removed.filter((v) => v !== rgb) });
+    setView('after');
+  };
 
   /** The chart as it will be created: only when the last stage is what is showing, for the current settings. */
   const chart = produced && produced.key === requestKey && 'cells' in produced.output && stage === 'cleanup' ? produced.output : null;
@@ -281,12 +362,79 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
     ),
     adjust: (
       <>
+        <label className="check">
+          <input type="checkbox" checked={simple.enabled} onChange={(e) => change('simplify', { enabled: e.target.checked })} />
+          <span>{d.simplify}</span>
+        </label>
+        {simple.enabled && (
+          <>
+            <Slider label={d.simpleColors(simple.colors)} min={MIN_COLORS} max={MAX_SIMPLE_COLORS} value={simple.colors} onChange={(v) => change('simplify', { colors: v })} />
+            {analysis && (
+              <div className="import-analysis">
+                <ColorCurve analysis={analysis} current={simple.colors} label={d.curve} />
+                <p className="form-note short">{d.curveNow(one.format(curveAt(analysis.counts, analysis.error, simple.colors)), Math.round(100 * curveAt(analysis.counts, analysis.visible, simple.colors)))}</p>
+                <p className="form-note short">{d.suggestion(analysis.suggested)}</p>
+                <button type="button" className="button" disabled={simple.colors === analysis.suggested} onClick={() => change('simplify', { colors: analysis.suggested })}>
+                  {d.useSuggested(analysis.suggested)}
+                </button>
+              </div>
+            )}
+            <label className="field">
+              <span>{d.simpleMethod}</span>
+              <select value={simple.method} onChange={(e) => change('simplify', { method: e.target.value as SimplifyMethod })}>
+                {SIMPLIFY_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {d.simpleMethods[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Slider label={simple.tolerance ? d.tolerance(simple.tolerance) : d.toleranceOff} min={0} max={MAX_TOLERANCE} value={simple.tolerance} onChange={(v) => change('simplify', { tolerance: v })} />
+            <Slider label={simple.smooth ? d.smooth(simple.smooth) : d.smoothOff} min={0} max={MAX_SMOOTH} value={simple.smooth} onChange={(v) => change('simplify', { smooth: v })} />
+            <Slider label={simple.minRegion ? d.minRegion(simple.minRegion) : d.minRegionOff} min={0} max={MAX_REGION} value={simple.minRegion} onChange={(v) => change('simplify', { minRegion: v })} />
+            <ul className="import-palette" aria-label={d.palette}>
+              {simplePalette.map((c) => (
+                <li key={c.rgb}>
+                  <label>
+                    <input type="checkbox" checked={picked.includes(c.rgb)} onChange={(e) => setPicked(e.target.checked ? [...picked, c.rgb] : picked.filter((rgb) => rgb !== c.rgb))} />
+                    <i className="swatch" style={{ background: hex(c.rgb) }} />
+                    <span className="code">{hex(c.rgb)}</span>
+                    <span className="pin">{c.pinned ? d.pinnedMark : ''}</span>
+                    <span className="count">{formatNumber(c.pixels)}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <label className="check">
+              <input type="checkbox" checked={highlight} onChange={(e) => setHighlight(e.target.checked)} />
+              <span>{d.highlight}</span>
+            </label>
+            <div className="import-palette-actions">
+              <button type="button" className="button" disabled={ticked.length === 0} onClick={pinTicked}>
+                {ticked.length > 0 && ticked.every((rgb) => simple.pinned.includes(rgb)) ? d.unpin : d.pin}
+              </button>
+              <button type="button" className="button" disabled={ticked.length < 2} onClick={mergeTicked}>
+                {d.merge}
+              </button>
+              <button type="button" className="button" disabled={ticked.length === 0 || ticked.length >= simplePalette.length} onClick={removeTicked}>
+                {d.remove}
+              </button>
+            </div>
+            <p className="form-note short">{d.paletteNote}</p>
+            <button type="button" className="button" disabled={edits === 0} onClick={() => change('simplify', { pinned: [], removed: [], merged: [] })}>
+              {d.undoEdits(edits)}
+            </button>
+          </>
+        )}
+      <details className="accordion">
+        <summary>{d.tone}</summary>
         <Slider label={d.brightness(adjust.brightness)} min={-100} max={100} value={adjust.brightness} onChange={(v) => change('adjust', { brightness: v })} />
         <Slider label={d.contrast(adjust.contrast)} min={-100} max={100} value={adjust.contrast} onChange={(v) => change('adjust', { contrast: v })} />
         <Slider label={d.saturation(adjust.saturation)} min={-100} max={100} value={adjust.saturation} onChange={(v) => change('adjust', { saturation: v })} />
         <button type="button" className="button" onClick={() => change('adjust', DEFAULT_SETTINGS.adjust)}>
           {d.reset}
         </button>
+      </details>
       </>
     ),
     colors: (
@@ -388,7 +536,7 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
             {!source ? (
               <p className="notice">{d.empty}</p>
             ) : showsCanvas ? (
-              <canvas ref={canvas} className={output ? undefined : 'pending'} />
+              <canvas ref={canvas} className={[output ? '' : 'pending', picksColor ? 'picking' : ''].join(' ').trim() || undefined} onClick={pickColor} />
             ) : crop && cropped ? (
               <CropPreview url={source.url} width={source.width} height={source.height} crop={crop} onMove={setCropAt} label={d.cropFrame} />
             ) : (
@@ -400,7 +548,9 @@ export function ImportImageDialog({ onCreate, onClose }: Props) {
               ? ''
               : 'cells' in output
                 ? d.chartStats(output.width, output.height, output.stats.colors, formatNumber(output.stats.isolated), one.format(output.stats.stitches ? (100 * output.stats.isolated) / output.stats.stitches : 0))
-                : d.imageStats(output.width, output.height)}
+                : output.palette?.length
+                  ? d.simpleStats(output.width, output.height, output.palette.length)
+                  : d.imageStats(output.width, output.height)}
           </p>
         </div>
 

@@ -24,6 +24,8 @@ export interface GridViewHandle {
   fit(): void;
   /** Move the view so this grid position is in the middle. */
   centerOn(x: number, y: number): void;
+  /** Where something new should go: the cell under the pointer, or else the top-left cell in view. */
+  anchorCell(): { x: number; y: number };
 }
 
 interface Props {
@@ -41,6 +43,8 @@ interface Props {
   brushSize: number;
   brushShape: BrushShape;
   fillMode: FillMode;
+  /** Rectangle and ellipse tools: filled or outline. */
+  shapeFilled: boolean;
   /** Threads along the gradient the bucket lays down in gradient mode. */
   ramp: Uint16Array;
   onView(info: ViewInfo): void;
@@ -48,6 +52,8 @@ interface Props {
   onBlocked(layer: LayerId): void;
   /** Eyedropper: the palette index of the cell that was picked. */
   onPick(index: number): void;
+  /** Text tool: a cell was clicked, where the text should start. */
+  onText(cell: { x: number; y: number }): void;
   ref?: Ref<GridViewHandle>;
 }
 
@@ -93,16 +99,16 @@ const selectMode = (e: PointerEvent): SelectMode => (e.shiftKey ? 'add' : e.altK
  * finger always move the view.
  */
 export function GridView(props: Props) {
-  const { editor, palette, tool, stitch, color, visible, brushSize, brushShape, fillMode, ramp, onView, onBlocked, onPick, ref } = props;
+  const { editor, palette, tool, stitch, color, visible, brushSize, brushShape, fillMode, shapeFilled, ramp, onView, onBlocked, onPick, onText, ref } = props;
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const api = useRef<GridViewHandle>({ zoomBy() {}, fit() {}, centerOn() {} });
+  const api = useRef<GridViewHandle>({ zoomBy() {}, fit() {}, centerOn() {}, anchorCell: () => ({ x: 0, y: 0 }) });
   const [unsupported, setUnsupported] = useState(false);
   const report = useRef(onView);
   report.current = onView;
   // Read by the input handlers, which are set up once per chart.
-  const live = useRef({ tool, stitch, color, visible, brushSize, brushShape, fillMode, ramp, onBlocked, onPick });
-  live.current = { tool, stitch, color, visible, brushSize, brushShape, fillMode, ramp, onBlocked, onPick };
+  const live = useRef({ tool, stitch, color, visible, brushSize, brushShape, fillMode, shapeFilled, ramp, onBlocked, onPick, onText });
+  live.current = { tool, stitch, color, visible, brushSize, brushShape, fillMode, shapeFilled, ramp, onBlocked, onPick, onText };
   const cursorRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<{ setVisible(full: boolean, fractional: boolean, backstitch: boolean): void; redraw(): void } | null>(null);
 
@@ -116,7 +122,7 @@ export function GridView(props: Props) {
 
   useImperativeHandle(
     ref,
-    () => ({ zoomBy: (f) => api.current.zoomBy(f), fit: () => api.current.fit(), centerOn: (x, y) => api.current.centerOn(x, y) }),
+    () => ({ zoomBy: (f) => api.current.zoomBy(f), fit: () => api.current.fit(), centerOn: (x, y) => api.current.centerOn(x, y), anchorCell: () => api.current.anchorCell() }),
     [],
   );
 
@@ -151,13 +157,16 @@ export function GridView(props: Props) {
     const showBrush = () => {
       const el = cursorRef.current;
       if (!el) return;
-      const { tool, stitch, brushSize, brushShape } = live.current;
-      if (!hover || (tool !== 'pencil' && tool !== 'eraser') || stitch === 'back' || gesture === 'pan') {
+      const { tool, brushShape } = live.current;
+      // The line tool draws full stitches whatever the stitch type; a three-quarter stitch is one corner at a time.
+      const stitch = tool === 'line' ? 'full' : live.current.stitch;
+      const brushSize = stitch === 'threeQuarter' ? 1 : live.current.brushSize;
+      if (!hover || (tool !== 'pencil' && tool !== 'eraser' && tool !== 'line') || stitch === 'back' || stitch === 'knot' || gesture === 'pan') {
         el.style.display = 'none';
         return;
       }
       // Quarter stitches are drawn on a grid of half cells.
-      const unit = stitch === 'quarter' ? 0.5 : 1;
+      const unit = stitch === 'quarter' || stitch === 'threeQuarter' ? 0.5 : 1;
       const first = (v: number) => (Math.floor(v / unit) - Math.floor(brushSize / 2)) * unit;
       const at = { x: cam.x + hover.x / cam.scale, y: cam.y + hover.y / cam.scale };
       const side = brushSize * unit * cam.scale;
@@ -241,6 +250,8 @@ export function GridView(props: Props) {
       last: Point;
       /** Start of the backstitch or gradient line being dragged out, in half cells. */
       anchor: Point;
+      /** The stroke as it was when the press began: shapes are redrawn from here as they are dragged out. */
+      mark: StrokeMark;
       /** While Shift holds the stroke to a straight line: where that line starts and the stroke as it was then. */
       straight: { from: Point; mark: StrokeMark } | null;
       /** The bucket is dragging out a gradient. */
@@ -260,7 +271,7 @@ export function GridView(props: Props) {
     };
 
     /** Position of the pointer on the grid a stitch type is drawn on. */
-    const unitOf = (p: Point, stitch: StitchId) => (stitch === 'quarter' ? halfCellOf(p) : cellOf(p));
+    const unitOf = (p: Point, stitch: StitchId) => (stitch === 'quarter' || stitch === 'threeQuarter' ? halfCellOf(p) : cellOf(p));
     const lineBounds = { x: grid.width * 2, y: grid.height * 2 };
 
     /** Draw the current stitch type along a line. */
@@ -268,16 +279,35 @@ export function GridView(props: Props) {
       if (!drag) return;
       if (drag.stitch === 'full') editor.paintLine(from.x, from.y, to.x, to.y, drag.value);
       else if (drag.stitch === 'half') editor.paintHalves(from.x, from.y, to.x, to.y, drag.slash, drag.value);
+      else if (drag.stitch === 'threeQuarter') editor.paintThreeQuarters(from.x, from.y, to.x, to.y, drag.value);
       else editor.paintQuarters(from.x, from.y, to.x, to.y, drag.value);
+    };
+
+    /** Line, rectangle and ellipse: drawn again from the press to the pointer each time it moves. Shift: 45 degrees, or a square. */
+    const shape = (p: Point, shift: boolean) => {
+      if (!drag) return;
+      editor.rewind(drag.mark);
+      const { from } = drag;
+      let to = cellOf(p);
+      if (drag.tool === 'line') {
+        if (shift) to = constrain(from, to);
+        editor.paintLine(from.x, from.y, to.x, to.y, drag.value);
+      } else if (drag.tool === 'rect' || drag.tool === 'ellipse') {
+        if (shift) {
+          const side = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+          to = { x: from.x + (to.x < from.x ? -side : side), y: from.y + (to.y < from.y ? -side : side) };
+        }
+        editor.paintShape(drag.tool, from.x, from.y, to.x, to.y, drag.value, live.current.shapeFilled);
+      }
     };
 
     /** One step of the pencil or the eraser. With `straight` (Shift), the stroke is a line at a multiple of 45 degrees. */
     const stroke = (p: Point, straight: boolean) => {
       if (!drag) return;
-      if (drag.stitch === 'back') {
+      if (drag.stitch === 'back' || drag.stitch === 'knot') {
         if (drag.tool === 'eraser') {
           editor.eraseBackstitchNear(chartAt(p).x, chartAt(p).y, Math.max(0.3, live.current.brushSize / 2));
-        } else {
+        } else if (drag.stitch === 'back') {
           const to = straight ? constrain(drag.anchor, snap(p), lineBounds) : snap(p);
           setPreview({ x0: drag.anchor.x, y0: drag.anchor.y, x1: to.x, y1: to.y, color: drag.value });
         }
@@ -299,13 +329,16 @@ export function GridView(props: Props) {
     };
 
     const useTool = (e: PointerEvent, p: Point) => {
-      const { tool, stitch, color, visible, fillMode, onBlocked, onPick } = live.current;
+      const { tool, color, visible, fillMode, onBlocked, onPick, onText } = live.current;
+      const shaping = tool === 'line' || tool === 'rect' || tool === 'ellipse';
+      // Only the pencil and the eraser work on the other stitch types.
+      const stitch = tool === 'pencil' || tool === 'eraser' ? live.current.stitch : 'full';
       const cell = cellOf(p);
       const index = indexAt(p);
       const at = chartAt(p);
       const drawing = tool === 'pencil' || tool === 'eraser';
       // Drawing tools act on the layer of the current stitch type; bucket and selection on full stitches.
-      const layer: LayerId | null = drawing ? LAYER_OF[stitch] : tool === 'fill' ? 'full' : null;
+      const layer: LayerId | null = drawing ? LAYER_OF[stitch] : tool === 'fill' || shaping || tool === 'move' || tool === 'text' ? 'full' : null;
       if (layer && (editor.isLocked(layer) || !visible[layer])) {
         onBlocked(layer);
         return;
@@ -320,6 +353,7 @@ export function GridView(props: Props) {
         index,
         last: unitOf(p, stitch),
         anchor: snap(p),
+        mark: editor.mark(),
         straight: null,
         gradient: tool === 'fill' && fillMode === 'gradient' && index >= 0,
         value: tool === 'eraser' ? 0 : color,
@@ -328,8 +362,12 @@ export function GridView(props: Props) {
         base: editor.selection,
         moved: false,
       };
-      if (drawing) stroke(p, e.shiftKey);
-      else if (tool === 'zoom') setCamera(zoomAt(cam, e.altKey || e.shiftKey ? 1 / BUTTON_ZOOM : BUTTON_ZOOM, p.x, p.y, grid, view));
+      if (tool === 'pencil' && stitch === 'knot') editor.addKnot(drag.anchor.x, drag.anchor.y, color);
+      else if (drawing) stroke(p, e.shiftKey);
+      else if (shaping) shape(p, e.shiftKey);
+      else if (tool === 'text') {
+        if (index >= 0) onText(cell);
+      } else if (tool === 'zoom') setCamera(zoomAt(cam, e.altKey || e.shiftKey ? 1 / BUTTON_ZOOM : BUTTON_ZOOM, p.x, p.y, grid, view));
       else if (tool === 'eyedropper') onPick(editor.colorAt(at.x, at.y, visible));
       else if (index < 0) return;
       else if (tool === 'fill' && !drag.gradient) editor.fill(index, color);
@@ -340,6 +378,8 @@ export function GridView(props: Props) {
       if (!drag) return;
       const cell = cellOf(p);
       if (drag.tool === 'pencil' || drag.tool === 'eraser') stroke(p, shift);
+      else if (drag.tool === 'line' || drag.tool === 'rect' || drag.tool === 'ellipse') shape(p, shift);
+      else if (drag.tool === 'move') editor.dragSelection(cell.x - drag.from.x, cell.y - drag.from.y);
       else if (drag.tool === 'select') editor.selectRect(drag.from.x, drag.from.y, cell.x, cell.y, drag.mode, drag.base);
       else if (drag.tool === 'eyedropper') live.current.onPick(editor.colorAt(chartAt(p).x, chartAt(p).y, live.current.visible));
       else if (drag.gradient) {
@@ -362,7 +402,7 @@ export function GridView(props: Props) {
         // Releasing the pencil turns the dragged line into a backstitch.
         editor.addBackstitch(line);
       }
-      if (drag.tool === 'pencil' || drag.tool === 'eraser') editor.endStroke();
+      if (['pencil', 'eraser', 'line', 'rect', 'ellipse', 'move'].includes(drag.tool)) editor.endStroke();
       // A plain click with the rectangle tool clears the selection.
       else if (drag.tool === 'select' && !drag.moved && drag.mode === 'replace') editor.deselect();
       drag = null;
@@ -457,6 +497,10 @@ export function GridView(props: Props) {
       zoomBy: centreZoom,
       fit: () => setCamera(fit(grid, view)),
       centerOn: (x, y) => setCamera(clamp({ ...cam, x: x - view.width / cam.scale / 2, y: y - view.height / cam.scale / 2 }, grid, view)),
+      anchorCell: () => {
+        const at = hover ? cellOf(hover) : { x: Math.ceil(cam.x), y: Math.ceil(cam.y) };
+        return { x: Math.max(0, Math.min(grid.width - 1, at.x)), y: Math.max(0, Math.min(grid.height - 1, at.y)) };
+      },
     };
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);

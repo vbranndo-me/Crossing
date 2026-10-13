@@ -1,4 +1,4 @@
-import { ciede2000, srgbToLab } from '../core/color.ts';
+import { ciede2000, labToSrgb, srgbToLab } from '../core/color.ts';
 import type { Palette } from '../core/palette.ts';
 import { pixelOE } from './pixeloe.ts';
 import { resample } from './resample.ts';
@@ -10,12 +10,13 @@ import type { Sampling } from './resample.ts';
  *
  *   size     the image scaled to one pixel per stitch        sizeImage
  *   adjust   brightness, contrast, saturation                adjustPixels
+ *   simplify redraw with a few flat colours, still RGB       simplifyColors
  *   colors   pick the threads, then give every stitch one    chooseThreads + mapToThreads
  *   cleanup  merge rare colours, remove confetti             cleanUp
  *
  * Everything here is plain computation on arrays, so it runs the same in a worker or in tests.
  */
-export const STAGES = ['size', 'adjust', 'colors', 'cleanup'] as const;
+export const STAGES = ['size', 'adjust', 'simplify', 'colors', 'cleanup'] as const;
 export type Stage = (typeof STAGES)[number];
 
 /** How the image is brought down to one pixel per stitch: a resampling kernel, or PixelOE. */
@@ -33,6 +34,38 @@ export interface AdjustSettings {
   brightness: number;
   contrast: number;
   saturation: number;
+}
+
+export const SIMPLIFY_METHODS = ['kmeans', 'median'] as const;
+export type SimplifyMethod = (typeof SIMPLIFY_METHODS)[number];
+
+export interface SimplifySettings {
+  /** Off: the image goes on to the threads as it is. */
+  enabled: boolean;
+  /** How many colours the image is redrawn with. */
+  colors: number;
+  /** How they are picked: median cut alone, or refined by k-means (closer to the large areas). */
+  method: SimplifyMethod;
+  /** Colours closer to each other than this (distance in Lab) become one. 0 = off. */
+  tolerance: number;
+  /** Edge-preserving smoothing before the colours are picked, 0 (off) to 10. */
+  smooth: number;
+  /** Patches of up to this many pixels are absorbed by their surroundings. 0 = off. */
+  minRegion: number;
+  /** Edits made by hand, as 0xRRGGBB values: colours that must be in the list, */
+  pinned: number[];
+  /** colours taken out of it (their pixels go to the closest one left), */
+  removed: number[];
+  /** and colours merged into another: [from, into]. */
+  merged: [number, number][];
+}
+
+/** One colour of the simplified image. */
+export interface SimplifiedColor {
+  /** 0xRRGGBB. */
+  rgb: number;
+  pixels: number;
+  pinned: boolean;
 }
 
 export interface ColorSettings {
@@ -54,6 +87,7 @@ export interface CleanupSettings {
 export interface PipelineSettings {
   size: SizeSettings;
   adjust: AdjustSettings;
+  simplify: SimplifySettings;
   colors: ColorSettings;
   cleanup: CleanupSettings;
 }
@@ -69,12 +103,17 @@ export interface ChartStats {
 
 export const MIN_COLORS = 2;
 export const MAX_COLORS = 120;
+export const MAX_SIMPLE_COLORS = 64;
+export const MAX_TOLERANCE = 30;
+export const MAX_SMOOTH = 10;
+export const MAX_REGION = 20;
 export const MAX_CONFETTI = 8;
 export const MAX_MIN_STITCHES = 200;
 
 export const DEFAULT_SETTINGS: PipelineSettings = {
   size: { method: 'lanczos', thickness: 2 },
   adjust: { brightness: 0, contrast: 0, saturation: 0 },
+  simplify: { enabled: true, colors: 32, method: 'kmeans', tolerance: 0, smooth: 0, minRegion: 0, pinned: [], removed: [], merged: [] },
   colors: { maxColors: 30, dither: 'none', ditherAmount: 75 },
   cleanup: { confetti: 0, minStitches: 0 },
 };
@@ -147,10 +186,10 @@ function nearestThread(palette: Palette, L: number, a: number, b: number, candid
 
 /**
  * Choose up to `n` representative colours for the image. Median cut over the colour histogram
- * gives the starting groups; a few rounds of k-means in Lab then move each one to the middle of
- * the pixels it stands for. Returns the Lab of each colour and how many pixels it stands for.
+ * gives the starting groups; with `refine`, a few rounds of k-means in Lab then move each one to
+ * the middle of the pixels it stands for. Returns the Lab of each colour and how many pixels it stands for.
  */
-function reduceColors(rgba: Uint8ClampedArray, n: number): { lab: Float64Array; groups: number; pixels: Float64Array } {
+function reduceColors(rgba: Uint8ClampedArray, n: number, refine = true): { lab: Float64Array; groups: number; pixels: Float64Array } {
   const count = new Uint32Array(BUCKETS);
   const sumR = new Uint32Array(BUCKETS);
   const sumG = new Uint32Array(BUCKETS);
@@ -241,7 +280,7 @@ function reduceColors(rgba: Uint8ClampedArray, n: number): { lab: Float64Array; 
     srgbToLab(Math.round(sumR[id] / count[id]), Math.round(sumG[id] / count[id]), Math.round(sumB[id] / count[id]), points, j * 3);
   }
   const sums = new Float64Array(groups * 4);
-  for (let round = 0; round < KMEANS_ROUNDS; round++) {
+  for (let round = 0; round < (refine ? KMEANS_ROUNDS : 0); round++) {
     sums.fill(0);
     for (let j = 0; j < used; j++) {
       let best = 0;
@@ -389,7 +428,7 @@ function mergeRareColors(cells: Uint16Array, palette: Palette, minStitches: numb
  * does not depend on the order the cells are visited in (deciding cell by cell drags colours
  * sideways, in streaks).
  */
-function removeConfetti(cells: Uint16Array, width: number, palette: Palette, maxSize: number): boolean {
+function removeConfetti(cells: Uint16Array, width: number, lab: Float64Array, maxSize: number): boolean {
   /** Cells that belong to an area large enough to stay. */
   const solid = new Uint8Array(cells.length);
   const seen = new Uint8Array(cells.length);
@@ -427,7 +466,6 @@ function removeConfetti(cells: Uint16Array, width: number, palette: Palette, max
   }
   starts.push(members.length);
 
-  const { lab } = palette;
   const distance = (a: number, b: number) => (lab[a * 3] - lab[b * 3]) ** 2 + (lab[a * 3 + 1] - lab[b * 3 + 1]) ** 2 + (lab[a * 3 + 2] - lab[b * 3 + 2]) ** 2;
   const around = new Map<number, number>();
   /** The colour a group should take, looking only at solid neighbours or at all of them. 0 = none. */
@@ -503,11 +541,284 @@ export function cleanUp(cells: Uint16Array, width: number, height: number, palet
   // nothing moves (which takes a few rounds; the limit is only a safeguard).
   for (let round = 0; round < CLEANUP_ROUNDS; round++) {
     let changed = false;
-    if (settings.confetti > 0) changed = removeConfetti(out, width, palette, settings.confetti) || changed;
+    if (settings.confetti > 0) changed = removeConfetti(out, width, palette.lab, settings.confetti) || changed;
     if (settings.minStitches > 0) changed = mergeRareColors(out, palette, settings.minStitches) || changed;
     if (!changed) break;
   }
   return out;
+}
+
+// ---------------------------------------------------------------- simplify
+
+/** Edge-preserving smoothing (a bilateral filter): flattens texture and noise, keeps the borders between areas. */
+function smoothPixels(rgba: Uint8ClampedArray, width: number, height: number, strength: number): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(rgba);
+  const R = 2;
+  // How different a neighbour's colour may be and still count: the stronger, the more is blended.
+  const range = -1 / (2 * (8 * strength) ** 2);
+  const near: number[] = [];
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) near.push(Math.exp(-(dx * dx + dy * dy) / (2 * 1.5 * 1.5)));
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const p = (y * width + x) * 4;
+      if (rgba[p + 3] < OPAQUE) continue;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let total = 0;
+      for (let dy = -R, k = 0; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++, k++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const q = (ny * width + nx) * 4;
+          if (rgba[q + 3] < OPAQUE) continue;
+          const dr = rgba[q] - rgba[p];
+          const dg = rgba[q + 1] - rgba[p + 1];
+          const db = rgba[q + 2] - rgba[p + 2];
+          const w = near[k] * Math.exp((dr * dr + dg * dg + db * db) * range);
+          r += rgba[q] * w;
+          g += rgba[q + 1] * w;
+          b += rgba[q + 2] * w;
+          total += w;
+        }
+      }
+      out[p] = r / total;
+      out[p + 1] = g / total;
+      out[p + 2] = b / total;
+    }
+  }
+  return out;
+}
+
+/**
+ * Stage "simplify": the image redrawn with a short list of flat colours, still free RGB (no
+ * thread is involved yet). In order:
+ *
+ *   1. smooth the image, keeping edges (optional);
+ *   2. pick the colours (median cut, optionally refined by k-means), plus the ones pinned by hand;
+ *   3. merge colours closer to each other than the tolerance: the one with more pixels stays;
+ *   4. apply the edits made by hand: colours removed, colours merged into another;
+ *   5. give every pixel its closest colour;
+ *   6. absorb patches of up to `minRegion` pixels into what surrounds them.
+ *
+ * Returns the pixels and the colours they use, most used first.
+ */
+export function simplifyColors(rgba: Uint8ClampedArray, width: number, height: number, s: SimplifySettings): { pixels: Uint8ClampedArray; palette: SimplifiedColor[] } {
+  if (!s.enabled) return { pixels: rgba, palette: [] };
+  const source = s.smooth > 0 ? smoothPixels(rgba, width, height, s.smooth) : rgba;
+  const pins = [...new Set(s.pinned)].filter((rgb) => !s.removed.includes(rgb));
+  const wanted = Math.max(MIN_COLORS, Math.min(MAX_SIMPLE_COLORS, Math.round(s.colors)));
+  const reduced = reduceColors(source, Math.max(1, wanted - pins.length), s.method === 'kmeans');
+
+  interface Entry {
+    rgb: number;
+    lab: number[];
+    weight: number;
+    pinned: boolean;
+    removed: boolean;
+    /** Merged into this other entry; -1 = stands for itself. */
+    to: number;
+  }
+  const entries: Entry[] = [];
+  const add = (rgb: number, weight: number, pinned: boolean) => {
+    const same = entries.find((e) => e.rgb === rgb);
+    if (same) {
+      same.weight += weight;
+      same.pinned ||= pinned;
+      return;
+    }
+    const lab = [0, 0, 0];
+    srgbToLab(rgb >> 16, (rgb >> 8) & 255, rgb & 255, lab);
+    entries.push({ rgb, lab, weight, pinned, removed: false, to: -1 });
+  };
+  const byte = [0, 0, 0];
+  for (let g = 0; g < reduced.groups; g++) {
+    labToSrgb(reduced.lab[g * 3], reduced.lab[g * 3 + 1], reduced.lab[g * 3 + 2], byte);
+    add((clampByte(Math.round(byte[0])) << 16) | (clampByte(Math.round(byte[1])) << 8) | clampByte(Math.round(byte[2])), reduced.pixels[g], false);
+  }
+  for (const rgb of pins) add(rgb, 0, true);
+
+  const apart = (a: Entry, b: Entry) => Math.hypot(a.lab[0] - b.lab[0], a.lab[1] - b.lab[1], a.lab[2] - b.lab[2]);
+  // Merge the closest pair, again and again, until no two colours are closer than the tolerance.
+  while (s.tolerance > 0) {
+    let from = -1;
+    let into = -1;
+    let closest = s.tolerance;
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].to >= 0) continue;
+      for (let j = i + 1; j < entries.length; j++) {
+        if (entries[j].to >= 0 || (entries[i].pinned && entries[j].pinned)) continue;
+        const d = apart(entries[i], entries[j]);
+        if (d >= closest) continue;
+        closest = d;
+        // A pinned colour always stays; otherwise the one that stands for more pixels.
+        const keepI = entries[i].pinned || (!entries[j].pinned && entries[i].weight >= entries[j].weight);
+        from = keepI ? j : i;
+        into = keepI ? i : j;
+      }
+    }
+    if (from < 0) break;
+    entries[from].to = into;
+    entries[into].weight += entries[from].weight;
+  }
+  // Edits made by hand name colours by their value; one that no longer exists is simply skipped.
+  const standing = (rgb: number) => entries.findIndex((e) => e.rgb === rgb && e.to < 0 && !e.removed);
+  for (const [fromRgb, intoRgb] of s.merged) {
+    const from = standing(fromRgb);
+    const into = standing(intoRgb);
+    if (from >= 0 && into >= 0 && from !== into) entries[from].to = into;
+  }
+  for (const rgb of s.removed) {
+    const at = standing(rgb);
+    if (at >= 0) entries[at].removed = true;
+  }
+  const final = (i: number) => {
+    while (entries[i].to >= 0) i = entries[i].to;
+    return i;
+  };
+  // A pixel may land on a merged colour (and is passed on), never on a removed one.
+  const candidates: number[] = [];
+  for (let i = 0; i < entries.length; i++) if (!entries[final(i)].removed) candidates.push(i);
+  if (candidates.length === 0) return { pixels: source, palette: [] };
+
+  const cache = new Int16Array(BUCKETS).fill(-1);
+  const cells = new Uint16Array(width * height);
+  for (let i = 0, p = 0; i < cells.length; i++, p += 4) {
+    if (source[p + 3] < OPAQUE) continue;
+    const key = bucketOf(source[p], source[p + 1], source[p + 2]);
+    if (cache[key] < 0) {
+      srgbToLab((source[p] & 0xf8) | 4, (source[p + 1] & 0xf8) | 4, (source[p + 2] & 0xf8) | 4, scratch);
+      let best = candidates[0];
+      let distance = Infinity;
+      for (const c of candidates) {
+        const { lab } = entries[c];
+        const d = (lab[0] - scratch[0]) ** 2 + (lab[1] - scratch[1]) ** 2 + (lab[2] - scratch[2]) ** 2;
+        if (d < distance) {
+          distance = d;
+          best = c;
+        }
+      }
+      cache[key] = final(best);
+    }
+    cells[i] = cache[key] + 1;
+  }
+  if (s.minRegion > 0) {
+    const lab = new Float64Array((entries.length + 1) * 3);
+    entries.forEach((e, i) => lab.set(e.lab, (i + 1) * 3));
+    removeConfetti(cells, width, lab, s.minRegion);
+  }
+
+  const pixels = new Uint8ClampedArray(rgba.length);
+  const used = new Uint32Array(entries.length);
+  for (let i = 0, p = 0; i < cells.length; i++, p += 4) {
+    if (cells[i] === 0) continue;
+    const { rgb } = entries[cells[i] - 1];
+    used[cells[i] - 1]++;
+    pixels[p] = rgb >> 16;
+    pixels[p + 1] = (rgb >> 8) & 255;
+    pixels[p + 2] = rgb & 255;
+    pixels[p + 3] = 255;
+  }
+  const palette: SimplifiedColor[] = [];
+  entries.forEach((e, i) => {
+    if (e.to < 0 && !e.removed && (used[i] > 0 || e.pinned)) palette.push({ rgb: e.rgb, pixels: used[i], pinned: e.pinned });
+  });
+  palette.sort((a, b) => b.pixels - a.pixels);
+  return { pixels, palette };
+}
+
+/** A colour difference (in Lab) below this is not seen by most people, even side by side. */
+export const VISIBLE_DELTA = 2.3;
+/** The analysis looks at about this many pixels at most: a sample gives practically the same curve. */
+const ANALYSIS_PIXELS = 120_000;
+/** Numbers of colours that are tried: every one at first, where the curve is steep, then further apart. */
+const ANALYSIS_COUNTS: number[] = [];
+for (let n = MIN_COLORS; n <= MAX_SIMPLE_COLORS; n += n < 16 ? 1 : n < 32 ? 2 : 4) ANALYSIS_COUNTS.push(n);
+
+/** How far the simplified image is from the one it was made from, for a range of numbers of colours. */
+export interface ColorAnalysis {
+  /** The numbers of colours tried, rising. */
+  counts: number[];
+  /** For each: the mean colour difference per pixel (Lab distance), */
+  error: number[];
+  /** and the share of pixels, 0 to 1, whose difference is large enough to be seen. */
+  visible: number[];
+  /** The number of colours from which adding more changes almost nothing. */
+  suggested: number;
+}
+
+/**
+ * Simplify the image with more and more colours and measure, each time, how different the result
+ * is from the image. The difference falls fast at first and then flattens; the suggestion is where
+ * it is either already invisible on average, or within 15% of the best that can be had.
+ * Tolerance, patch size and the edits made by hand are left out: this is about the count alone.
+ */
+export function analyzeColors(rgba: Uint8ClampedArray, width: number, height: number, s: SimplifySettings): ColorAnalysis {
+  const source = s.smooth > 0 ? smoothPixels(rgba, width, height, s.smooth) : rgba;
+  // Every `step`-th pixel each way, when the image is large.
+  const step = Math.max(1, Math.ceil(Math.sqrt((width * height) / ANALYSIS_PIXELS)));
+  let sample = source;
+  if (step > 1) {
+    const w = Math.ceil(width / step);
+    const h = Math.ceil(height / step);
+    sample = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0, o = 0; y < h; y++) {
+      for (let x = 0; x < w; x++, o += 4) {
+        const p = (y * step * width + x * step) * 4;
+        sample[o] = source[p];
+        sample[o + 1] = source[p + 1];
+        sample[o + 2] = source[p + 2];
+        sample[o + 3] = source[p + 3];
+      }
+    }
+  }
+  // The image as a histogram: one point per colour bucket, weighted by its pixels.
+  const count = new Uint32Array(BUCKETS);
+  const sums = new Float64Array(BUCKETS * 3);
+  let total = 0;
+  for (let p = 0; p < sample.length; p += 4) {
+    if (sample[p + 3] < OPAQUE) continue;
+    const k = bucketOf(sample[p], sample[p + 1], sample[p + 2]);
+    count[k]++;
+    sums[k * 3] += sample[p];
+    sums[k * 3 + 1] += sample[p + 1];
+    sums[k * 3 + 2] += sample[p + 2];
+    total++;
+  }
+  const points: number[] = [];
+  const weights: number[] = [];
+  for (let k = 0; k < BUCKETS; k++) {
+    if (count[k] === 0) continue;
+    srgbToLab(Math.round(sums[k * 3] / count[k]), Math.round(sums[k * 3 + 1] / count[k]), Math.round(sums[k * 3 + 2] / count[k]), scratch);
+    points.push(scratch[0], scratch[1], scratch[2]);
+    weights.push(count[k]);
+  }
+
+  const error: number[] = [];
+  const visible: number[] = [];
+  for (const n of ANALYSIS_COUNTS) {
+    const { lab, groups } = reduceColors(sample, n, s.method === 'kmeans');
+    let sum = 0;
+    let seen = 0;
+    for (let j = 0; j < weights.length; j++) {
+      let closest = Infinity;
+      for (let g = 0, o = 0; g < groups; g++, o += 3) {
+        const d = (lab[o] - points[j * 3]) ** 2 + (lab[o + 1] - points[j * 3 + 1]) ** 2 + (lab[o + 2] - points[j * 3 + 2]) ** 2;
+        if (d < closest) closest = d;
+      }
+      const d = Math.sqrt(closest);
+      sum += d * weights[j];
+      if (d > VISIBLE_DELTA) seen += weights[j];
+    }
+    error.push(total ? sum / total : 0);
+    visible.push(total ? seen / total : 0);
+  }
+  const best = error[error.length - 1];
+  const close = best + 0.15 * (error[0] - best);
+  let at = error.findIndex((e) => e <= VISIBLE_DELTA || e <= close);
+  if (at < 0) at = error.length - 1;
+  return { counts: [...ANALYSIS_COUNTS], error, visible, suggested: ANALYSIS_COUNTS[at] };
 }
 
 // ---------------------------------------------------------------- whole pipeline
@@ -539,12 +850,14 @@ export function runPipeline(
   palette: Palette,
   settings: PipelineSettings,
   upTo: Stage = 'cleanup',
-): { pixels: Uint8ClampedArray } | { cells: Uint16Array; stats: ChartStats } {
+): { pixels: Uint8ClampedArray; palette?: SimplifiedColor[] } | { cells: Uint16Array; stats: ChartStats } {
   if (upTo === 'size') return { pixels: rgba };
   const adjusted = adjustPixels(rgba, settings.adjust);
   if (upTo === 'adjust') return { pixels: adjusted };
-  const threads = chooseThreads(adjusted, palette, settings.colors.maxColors);
-  let cells = mapToThreads(adjusted, width, height, palette, threads, settings.colors);
+  const simplified = simplifyColors(adjusted, width, height, settings.simplify);
+  if (upTo === 'simplify') return simplified;
+  const threads = chooseThreads(simplified.pixels, palette, settings.colors.maxColors);
+  let cells = mapToThreads(simplified.pixels, width, height, palette, threads, settings.colors);
   if (upTo === 'cleanup') cells = cleanUp(cells, width, height, palette, settings.cleanup);
   return { cells, stats: chartStats(cells, width) };
 }

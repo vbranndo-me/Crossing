@@ -1,16 +1,18 @@
 import type { Grid } from '../core/grid.ts';
 import type { Palette } from '../core/palette.ts';
+import { drawLines, flatColor } from '../render/flat.ts';
+import type { UpperLayers } from '../render/flat.ts';
 
 const MAX_SIDE = 192;
 
-/** Small PNG of the chart's full stitches, for the library. null if the browser cannot make one. */
-export async function makeThumbnail(grid: Grid, palette: Palette): Promise<Blob | null> {
+/** Small PNG of the chart (every layer), for the library. null if the browser cannot make one. */
+export async function makeThumbnail(grid: Grid, palette: Palette, upper?: UpperLayers): Promise<Blob | null> {
   try {
     const { width, height, cells } = grid;
     const image = new ImageData(width, height);
     const pixels = new Uint32Array(image.data.buffer);
     for (let i = 0; i < cells.length; i++) {
-      const o = cells[i] * 3;
+      const o = flatColor(i, cells, upper) * 3;
       pixels[i] = 0xff000000 | (palette.rgb[o + 2] << 16) | (palette.rgb[o + 1] << 8) | palette.rgb[o];
     }
     const full = new OffscreenCanvas(width, height);
@@ -22,6 +24,7 @@ export async function makeThumbnail(grid: Grid, palette: Palette): Promise<Blob 
     const ctx = small.getContext('2d')!;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(full, 0, 0, small.width, small.height);
+    if (upper) drawLines(ctx, upper.backstitches, palette, small.width / width);
     return await small.convertToBlob({ type: 'image/png' });
   } catch {
     return null;

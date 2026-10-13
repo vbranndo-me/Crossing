@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { paletteFor } from '../threads/brands.ts';
-import { DEFAULT_SETTINGS, adjustPixels, chartStats, cleanUp, mapToThreads, runPipeline } from './pipeline.ts';
+import { DEFAULT_SETTINGS, VISIBLE_DELTA, adjustPixels, analyzeColors, chartStats, cleanUp, mapToThreads, runPipeline, simplifyColors } from './pipeline.ts';
+import type { SimplifySettings } from './pipeline.ts';
 import type { PipelineSettings, Stage } from './pipeline.ts';
 
 const palette = paletteFor('dmc');
@@ -22,6 +23,8 @@ function image(width: number, height: number, pixel: (x: number, y: number) => [
 const settings = (change: { [K in keyof PipelineSettings]?: Partial<PipelineSettings[K]> } = {}): PipelineSettings => ({
   size: { ...DEFAULT_SETTINGS.size, ...change.size },
   adjust: { ...DEFAULT_SETTINGS.adjust, ...change.adjust },
+  // Off unless a test asks for it: the tests of the later stages describe those stages alone.
+  simplify: { ...DEFAULT_SETTINGS.simplify, enabled: false, ...change.simplify },
   colors: { ...DEFAULT_SETTINGS.colors, ...change.colors },
   cleanup: { ...DEFAULT_SETTINGS.cleanup, ...change.cleanup },
 });
@@ -126,6 +129,115 @@ describe('pipeline: adjust', () => {
     expect(new Set(grey).size).toBe(1);
     const vivid = at(adjustPixels(pixels, { brightness: 0, contrast: 0, saturation: 60 }), 3);
     expect(vivid[0] - vivid[1]).toBeGreaterThan(200 - 60);
+  });
+});
+
+describe('pipeline: simplify', () => {
+  const simple = (change: Partial<SimplifySettings> = {}): SimplifySettings => ({ ...DEFAULT_SETTINGS.simplify, ...change });
+  const colorsOf = (rgba: Uint8ClampedArray) => {
+    const found = new Set<number>();
+    for (let p = 0; p < rgba.length; p += 4) if (rgba[p + 3] > 0) found.add((rgba[p] << 16) | (rgba[p + 1] << 8) | rgba[p + 2]);
+    return found;
+  };
+  const RED = 0xc80000;
+  const BLUE = 0x0000c8;
+  // Left half red, right half blue, with one near-red and one green pixel in the red half.
+  const halves = image(20, 10, (x, y) => (x === 3 && y === 3 ? [190, 10, 10] : x === 6 && y === 6 ? [0, 200, 0] : x < 10 ? [200, 0, 0] : [0, 0, 200]));
+
+  it('redraws the image with at most the number of colours asked for', () => {
+    for (const colors of [2, 6, 20]) {
+      const { pixels, palette } = simplifyColors(gradient, 64, 64, simple({ colors }));
+      expect(colorsOf(pixels).size).toBeLessThanOrEqual(colors);
+      expect(colorsOf(pixels).size).toBeGreaterThanOrEqual(colors * 0.7);
+      expect(palette.length).toBe(colorsOf(pixels).size);
+      expect(palette.reduce((sum, c) => sum + c.pixels, 0)).toBe(64 * 64);
+    }
+  });
+
+  it('switched off, leaves the image as it is', () => {
+    expect(simplifyColors(gradient, 64, 64, simple({ enabled: false })).pixels).toBe(gradient);
+  });
+
+  it('keeps transparent pixels transparent', () => {
+    const rgba = image(4, 4, (x, y) => [200, 30, 30, x === y ? 0 : 255]);
+    const { pixels } = simplifyColors(rgba, 4, 4, simple({ colors: 4 }));
+    expect(pixels[3]).toBe(0);
+    expect(pixels[7]).toBe(255);
+  });
+
+  it('merges colours closer than the tolerance, keeping the one with more pixels', () => {
+    const apart = simplifyColors(halves, 20, 10, simple({ colors: 4, method: 'median' }));
+    expect(apart.palette.length).toBe(4);
+    const merged = simplifyColors(halves, 20, 10, simple({ colors: 4, method: 'median', tolerance: 10 }));
+    expect(merged.palette.length).toBe(3);
+    // The near-red pixel is now plain red.
+    expect([...merged.pixels.slice((3 * 20 + 3) * 4, (3 * 20 + 3) * 4 + 3)]).toEqual([...merged.pixels.slice(0, 3)]);
+  });
+
+  it('absorbs small patches into what surrounds them', () => {
+    const { pixels, palette } = simplifyColors(halves, 20, 10, simple({ colors: 4, method: 'median', minRegion: 1 }));
+    expect(palette.length).toBe(2);
+    expect(colorsOf(pixels).size).toBe(2);
+  });
+
+  it('a pinned colour is in the result even when the image has little of it', () => {
+    const green = 0x00c800;
+    const without = simplifyColors(halves, 20, 10, simple({ colors: 2 }));
+    expect(colorsOf(without.pixels).has(green)).toBe(false);
+    const pinned = simplifyColors(halves, 20, 10, simple({ colors: 3, pinned: [green] }));
+    expect(colorsOf(pinned.pixels).has(green)).toBe(true);
+    expect(pinned.palette.find((c) => c.rgb === green)?.pinned).toBe(true);
+    expect(pinned.palette.length).toBeLessThanOrEqual(3);
+  });
+
+  it('a removed colour gives its pixels to the closest one left; a merged one to the colour chosen', () => {
+    const base = simplifyColors(halves, 20, 10, simple({ colors: 2 }));
+    const [first, second] = base.palette.map((c) => c.rgb);
+    const removed = simplifyColors(halves, 20, 10, simple({ colors: 2, removed: [second] }));
+    expect([...colorsOf(removed.pixels)]).toEqual([first]);
+    const merged = simplifyColors(halves, 20, 10, simple({ colors: 2, merged: [[first, second]] }));
+    expect([...colorsOf(merged.pixels)]).toEqual([second]);
+    // An edit that names a colour that is not there changes nothing.
+    expect(simplifyColors(halves, 20, 10, simple({ colors: 2, removed: [0x123456] })).pixels).toEqual(base.pixels);
+    expect(RED).not.toBe(BLUE);
+  });
+
+  it('smoothing flattens noise but keeps the edge between two areas', () => {
+    const noisy = image(40, 20, (x, y) => {
+      const n = ((x * 7 + y * 13) % 5) * 4;
+      return x < 20 ? [60 + n, 60 + n, 60 + n] : [200 + n, 200 + n, 200 + n];
+    });
+    const { pixels } = simplifyColors(noisy, 40, 20, simple({ colors: 8, smooth: 6 }));
+    expect(colorsOf(pixels).size).toBeLessThanOrEqual(4);
+    expect(pixels[(10 * 40 + 19) * 4]).toBeLessThan(100);
+    expect(pixels[(10 * 40 + 20) * 4]).toBeGreaterThan(180);
+  });
+
+  it('measures how the difference to the image falls as colours are added', () => {
+    const { counts, error, visible, suggested } = analyzeColors(gradient, 64, 64, simple());
+    expect(counts[0]).toBe(2);
+    expect(counts.at(-1)).toBe(64);
+    expect(error.length).toBe(counts.length);
+    // More colours, less difference (k-means may wobble a little from one count to the next).
+    expect(error[0]).toBeGreaterThan(error.at(-1)! * 3);
+    for (let i = 4; i < error.length; i++) expect(error[i]).toBeLessThan(error[i - 4]);
+    expect(visible[0]).toBeGreaterThan(0.9);
+    expect(visible.at(-1)!).toBeLessThanOrEqual(visible[0]);
+    // The suggestion is somewhere in the flat part: neither the fewest nor the most.
+    expect(suggested).toBeGreaterThan(8);
+    expect(suggested).toBeLessThan(64);
+  });
+
+  it('for an image of few colours, suggests just those', () => {
+    const three = image(30, 30, (x) => (x < 10 ? [200, 0, 0] : x < 20 ? [0, 0, 200] : [240, 240, 240]));
+    const { counts, error, suggested } = analyzeColors(three, 30, 30, simple());
+    expect(suggested).toBe(3);
+    expect(error[counts.indexOf(3)]).toBeLessThan(VISIBLE_DELTA);
+  });
+
+  it('the threads are then chosen from the simplified image', () => {
+    const s = settings({ simplify: { enabled: true, colors: 6 }, colors: { maxColors: 30 } });
+    expect(chart(gradient, 64, 64, s, 'colors').stats.colors).toBeLessThanOrEqual(6);
   });
 });
 

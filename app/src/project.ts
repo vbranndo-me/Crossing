@@ -82,6 +82,7 @@ export async function openProject(id: string): Promise<Project | null> {
 export async function saveProject(project: Project, editor?: Editor): Promise<void> {
   if (!project.id) return;
   const { grid } = project;
+  const upper = editor ?? project;
   await saveChart(
     {
       id: project.id,
@@ -92,15 +93,15 @@ export async function saveProject(project: Project, editor?: Editor): Promise<vo
       fabricCount: project.fabricCount,
       createdAt: project.createdAt,
       updatedAt: Date.now(),
-      thumbnail: await makeThumbnail(grid, paletteFor(project.brand)),
+      thumbnail: await makeThumbnail(grid, paletteFor(project.brand), upper),
     },
     {
       id: project.id,
       codes: paletteFor(project.brand).entries.map((e) => e.code),
       cells: grid.cells,
-      quarters: editor ? editor.quarters : project.quarters,
-      halves: editor ? editor.halves : project.halves,
-      backstitches: [...(editor ? editor.backstitches : project.backstitches)],
+      quarters: upper.quarters,
+      halves: upper.halves,
+      backstitches: [...upper.backstitches],
     },
   );
 }
@@ -119,6 +120,35 @@ export function convertProject(project: Project, editor: Editor, brand: BrandId)
     quarters: convert(editor.quarters),
     halves: convert(editor.halves),
     backstitches: editor.backstitches.map((l) => ({ ...l, color: map[l.color] })),
+  };
+}
+
+/**
+ * The same chart on a canvas of another size. (dx, dy) is where the old top-left corner lands on
+ * the new one, in cells: negative values crop. Stitches that end up outside are dropped, and so
+ * are backstitch lines that do not fit whole.
+ */
+export function resizeProject(project: Project, editor: Editor, width: number, height: number, dx: number, dy: number): Project {
+  const old = project.grid;
+  const resized = (values: Uint16Array | null, per: number) => {
+    if (!values) return null;
+    const out = new Uint16Array(width * height * per);
+    for (let y = Math.max(0, -dy); y < Math.min(old.height, height - dy); y++) {
+      const from = Math.max(0, -dx);
+      const to = Math.min(old.width, width - dx);
+      if (to > from) out.set(values.subarray((y * old.width + from) * per, (y * old.width + to) * per), ((y + dy) * width + from + dx) * per);
+    }
+    return out;
+  };
+  const fits = (x: number, y: number) => x >= 0 && y >= 0 && x <= width * 2 && y <= height * 2;
+  return {
+    ...project,
+    grid: { width, height, cells: resized(old.cells, 1)! },
+    quarters: resized(editor.quarters, 4),
+    halves: resized(editor.halves, 2),
+    backstitches: editor.backstitches
+      .map((l) => ({ ...l, x0: l.x0 + dx * 2, y0: l.y0 + dy * 2, x1: l.x1 + dx * 2, y1: l.y1 + dy * 2 }))
+      .filter((l) => fits(l.x0, l.y0) && fits(l.x1, l.y1)),
   };
 }
 
